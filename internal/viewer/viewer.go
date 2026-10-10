@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tkurtbond/ova_cg/internal/rules"
-	"github.com/tkurtbond/ova_cg/internal/spawn"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/spawn"
 )
 
 // Kind is a kind of viewer.

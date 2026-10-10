@@ -31,10 +31,10 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tkurtbond/ova_cg/internal/calc"
-	"github.com/tkurtbond/ova_cg/internal/entities"
-	"github.com/tkurtbond/ova_cg/internal/rules"
-	"github.com/tkurtbond/ova_cg/internal/spawn"
+	"github.com/tkurtbond/go_ova_cg/internal/calc"
+	"github.com/tkurtbond/go_ova_cg/internal/entities"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/spawn"
 )
 
 // NFluff is how many fluff fields there are.

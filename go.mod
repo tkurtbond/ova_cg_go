@@ -1,4 +1,4 @@
-module github.com/tkurtbond/ova_cg
+module github.com/tkurtbond/go_ova_cg
 
 go 1.26.8
 

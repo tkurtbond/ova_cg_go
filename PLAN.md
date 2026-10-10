@@ -38,7 +38,7 @@ differently and why, and the build order.
 ## Layout
 
 ```
-go.mod                      module github.com/tkurtbond/ova_cg
+go.mod                      module github.com/tkurtbond/go_ova_cg
 cmd/ova_cg/                 main: command line, file, display check, window
 cmd/listrules/              PAGE<TAB>NAME of every item, for make check-pages
 cmd/openpage/               test/viewer.sh's driver (po_ova_cg's OpenPage)

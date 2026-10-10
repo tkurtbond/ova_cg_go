@@ -32,8 +32,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/ova_cg/internal/calc"
-	"github.com/tkurtbond/ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/calc"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
 )
 
 // Row is a row's height: an entry's or a button's.

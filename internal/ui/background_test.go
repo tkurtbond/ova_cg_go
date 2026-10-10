@@ -15,8 +15,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tkurtbond/ova_cg/internal/entities"
-	"github.com/tkurtbond/ova_cg/internal/paths"
+	"github.com/tkurtbond/go_ova_cg/internal/entities"
+	"github.com/tkurtbond/go_ova_cg/internal/paths"
 )
 
 const (

@@ -18,10 +18,10 @@ import (
 
 	"fyne.io/fyne/v2/app"
 
-	"github.com/tkurtbond/ova_cg/internal/character"
-	"github.com/tkurtbond/ova_cg/internal/prefs"
-	"github.com/tkurtbond/ova_cg/internal/ui"
-	"github.com/tkurtbond/ova_cg/internal/viewer"
+	"github.com/tkurtbond/go_ova_cg/internal/character"
+	"github.com/tkurtbond/go_ova_cg/internal/prefs"
+	"github.com/tkurtbond/go_ova_cg/internal/ui"
+	"github.com/tkurtbond/go_ova_cg/internal/viewer"
 )
 
 const (

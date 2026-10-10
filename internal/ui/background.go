@@ -32,9 +32,9 @@ import (
 	"fyne.io/fyne/v2/widget"
 	_ "golang.org/x/image/bmp" // portraits
 
-	"github.com/tkurtbond/ova_cg/internal/character"
-	"github.com/tkurtbond/ova_cg/internal/entities"
-	"github.com/tkurtbond/ova_cg/internal/paths"
+	"github.com/tkurtbond/go_ova_cg/internal/character"
+	"github.com/tkurtbond/go_ova_cg/internal/entities"
+	"github.com/tkurtbond/go_ova_cg/internal/paths"
 )
 
 // The prose sections, Background.Prose's indices.

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tkurtbond/ova_cg/internal/prefs"
-	"github.com/tkurtbond/ova_cg/internal/viewer"
+	"github.com/tkurtbond/go_ova_cg/internal/prefs"
+	"github.com/tkurtbond/go_ova_cg/internal/viewer"
 )
 
 // reds is which of the Abilities', the Total and the points are red:

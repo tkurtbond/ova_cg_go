@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tkurtbond/ova_cg/internal/viewer"
+	"github.com/tkurtbond/go_ova_cg/internal/viewer"
 )
 
 const pause = 3 * time.Second

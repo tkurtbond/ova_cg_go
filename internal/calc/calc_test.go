@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/tkurtbond/ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
 )
 
 type checker struct {

@@ -28,7 +28,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tkurtbond/ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
 )
 
 // SheetKind says where Health and Endurance start, and TV's last step.

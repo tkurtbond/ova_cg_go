@@ -32,13 +32,13 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/ova_cg/internal/calc"
-	"github.com/tkurtbond/ova_cg/internal/character"
-	"github.com/tkurtbond/ova_cg/internal/paths"
-	"github.com/tkurtbond/ova_cg/internal/prefs"
-	"github.com/tkurtbond/ova_cg/internal/rules"
-	"github.com/tkurtbond/ova_cg/internal/save"
-	"github.com/tkurtbond/ova_cg/internal/viewer"
+	"github.com/tkurtbond/go_ova_cg/internal/calc"
+	"github.com/tkurtbond/go_ova_cg/internal/character"
+	"github.com/tkurtbond/go_ova_cg/internal/paths"
+	"github.com/tkurtbond/go_ova_cg/internal/prefs"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/save"
+	"github.com/tkurtbond/go_ova_cg/internal/viewer"
 )
 
 // Title is the window's title, before the file's name.

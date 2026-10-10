@@ -26,9 +26,9 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/ova_cg/internal/calc"
-	"github.com/tkurtbond/ova_cg/internal/character"
-	"github.com/tkurtbond/ova_cg/internal/rules"
+	"github.com/tkurtbond/go_ova_cg/internal/calc"
+	"github.com/tkurtbond/go_ova_cg/internal/character"
+	"github.com/tkurtbond/go_ova_cg/internal/rules"
 )
 
 // maxTimes is the count's bound for an item taken as often as wanted.
