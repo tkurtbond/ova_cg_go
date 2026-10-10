@@ -29,6 +29,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/tkurtbond/ova_cg/internal/calc"
@@ -38,11 +39,26 @@ import (
 // Row is a row's height: an entry's or a button's.
 const Row = 36
 
-// A NumberBox's widths: the number shown, and its override's entry.
-const (
-	numberShownW = 44
-	numberEntryW = 64
-)
+// numberShownW is the width of a NumberBox's number shown.
+const numberShownW = 44
+
+// overrideSamples are the widest texts an override box need show
+// whole: three characters, as a DX's 1/2 or a spell's 10+ (a longer one
+// still fits, scrolled).
+var overrideSamples = []string{"-10", "10+", "1/2", "100"}
+
+// overrideW is an override box's width: its widest sample in the
+// theme's text, the entry's inner padding and border at both ends, and
+// a padding's room for the cursor.
+func overrideW() float32 {
+	th := theme.Current()
+	text := float32(0)
+	for _, s := range overrideSamples {
+		text = max(text, fyne.MeasureText(s, th.Size(theme.SizeNameText), fyne.TextStyle{}).Width)
+	}
+	return text + 2*th.Size(theme.SizeNameInnerPadding) + 2*th.Size(theme.SizeNameInputBorder) +
+		th.Size(theme.SizeNamePadding)
+}
 
 // sized is o, given at least w by h.
 func sized(o fyne.CanvasObject, w, h float32) fyne.CanvasObject {
@@ -204,7 +220,7 @@ func NewNumberBox(label string, above bool) *NumberBox {
 	b.entry = newOverrideEntry(b.Take)
 	b.entry.SetPlaceHolder("")
 	b.Entry = &b.entry.Entry
-	pair := container.NewHBox(sized(b.Shown, numberShownW, 0), sized(b.entry, numberEntryW, 0))
+	pair := container.NewHBox(sized(b.Shown, numberShownW, 0), sized(b.entry, overrideW(), 0))
 	switch {
 	case label == "":
 		b.box = container.NewHBox(pair)

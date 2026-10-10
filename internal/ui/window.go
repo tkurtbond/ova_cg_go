@@ -768,7 +768,7 @@ func (w *Window) buildSheetTab() fyne.CanvasObject {
 	// The header's columns as wide as a row's (showRows): a number's
 	// pair, and the Edit and Remove buttons.
 	pad := theme.Padding()
-	number := numberShownW + pad + numberEntryW
+	number := numberShownW + pad + overrideW()
 	buttons := widget.NewButton("Edit", nil).MinSize().Width + pad + widget.NewButton("Remove", nil).MinSize().Width
 	header := container.NewBorder(nil, nil, nil, container.NewHBox(
 		sized(widget.NewLabel("ROLL"), number, 0), sized(widget.NewLabel("DX"), number, 0),
