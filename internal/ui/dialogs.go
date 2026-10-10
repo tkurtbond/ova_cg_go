@@ -69,6 +69,14 @@ func (e *escEntry) TypedKey(k *fyne.KeyEvent) {
 // chooserSize is a file chooser's size.
 var chooserSize = fyne.NewSize(900, 600)
 
+// showChooser shows d at chooserSize. Resized before Show, a FileDialog
+// panics: its MinSize asks a dialog that Show builds (Fyne v2.8.1,
+// dialog/file.go; TestChoosers).
+func showChooser(d *dialog.FileDialog) {
+	d.Show()
+	d.Resize(chooserSize)
+}
+
 func (w *Window) dialogTell(text string) {
 	d := dialog.NewCustom(Title, "OK", widget.NewLabel(text), w.Win)
 	w.modal(d, d.Hide)
@@ -123,8 +131,7 @@ func (w *Window) dialogPath(save bool, then func(string)) {
 	}
 	d.SetFilter(storage.NewExtensionFileFilter([]string{".yaml", ".yml"}))
 	w.startIn(d, w.Path)
-	d.Resize(chooserSize)
-	d.Show()
+	showChooser(d)
 }
 
 // openChooser is a chooser of a file to read; then(path), "" for none.
@@ -145,8 +152,7 @@ func (w *Window) dialogPdf(then func(string)) {
 	d.SetTitleText("The rulebook's PDF")
 	d.SetFilter(storage.NewExtensionFileFilter([]string{".pdf", ".PDF"}))
 	w.startIn(d, w.SavedRulebook)
-	d.Resize(chooserSize)
-	d.Show()
+	showChooser(d)
 }
 
 func (w *Window) dialogImage(then func(string)) {
@@ -155,8 +161,7 @@ func (w *Window) dialogImage(then func(string)) {
 	d.SetFilter(storage.NewExtensionFileFilter([]string{".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg",
 		".PNG", ".JPG", ".JPEG", ".GIF", ".BMP", ".SVG"}))
 	w.startIn(d, w.Path)
-	d.Resize(chooserSize)
-	d.Show()
+	showChooser(d)
 }
 
 func (w *Window) dialogText(prompt, text string, then func(string, bool)) {

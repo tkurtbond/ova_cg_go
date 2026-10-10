@@ -345,6 +345,11 @@ po_ova_cg's design didn't have to know.
   leaves an empty file at the chosen name, which po_ova_cg's never did.
   Accepted: the failure is said, and the old file, if any, is the
   chooser's to have emptied (it asks before overwriting).
+- **A `FileDialog` resized before `Show` panics**: its `MinSize` asks
+  the dialog window that `Show` builds (v2.8.1, `dialog/file.go`).
+  `showChooser` shows first, then resizes. The window tests put fakes
+  in the choosers' places, so the crash reached the user's first Save
+  As; `TestChoosers` now opens the real ones.
 - **yaml.v3 quotes text that reads as a number or boolean** once it is
   tagged `!!str` (`age: "15"`); libfyaml wrote `15`. The two load the
   same, and po_ova_fmt prints them the same (`test/files.sh`).

@@ -389,3 +389,19 @@ func TestEscape(t *testing.T) {
 	esc()
 	check(t, answer == -1 && len(w.escapes) == 0, "and then nothing")
 }
+
+// TestChoosers: the real file choosers open (the other tests put fakes
+// in their place). Fyne's FileDialog.Resize before Show dereferences a
+// dialog not yet built (v2.8.1, dialog/file.go: MinSize).
+func TestChoosers(t *testing.T) {
+	w, _ := newWindow(t)
+	w.Win.Show()
+	for _, open := range []func(){
+		func() { w.dialogPath(true, func(string) {}) },
+		func() { w.dialogPath(false, func(string) {}) },
+		func() { w.dialogPdf(func(string) {}) },
+		func() { w.dialogImage(func(string) {}) },
+	} {
+		open()
+	}
+}
