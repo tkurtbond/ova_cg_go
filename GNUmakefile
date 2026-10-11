@@ -21,7 +21,7 @@ TIMEOUT ?= 10m
 RUNTIME ?= 3
 
 .PHONY: all test check check-pages test-viewers test-gui test-headless test-sway display \
-  install uninstall clean $(PROGRAM)
+  install uninstall clean windows macos clean-cross $(PROGRAM)
 .NOTPARALLEL:
 
 all: $(PROGRAM)
@@ -105,6 +105,20 @@ test-headless: $(PROGRAM)
 # On Wayland, on a headless sway (tools/with-sway.sh), built for Wayland.
 test-sway:
 	tools/with-sway.sh $(MAKE) TAGS=wayland test-gui
+
+# ---- Cross builds ----
+#
+# In podman containers (cross/build.sh, cross/*.Containerfile), into
+# obj/cross/: windows makes windows/ova_cg_go.exe, macos a universal
+# macos/ova_cg_go, and needs Apple's SDK in cross/sdk/. REBUILD=1 builds
+# the image again. clean-cross removes the images and the Go caches'
+# volumes.
+windows macos:
+	cross/build.sh $@
+
+clean-cross:
+	-podman image rm ova_cg_go-cross-windows ova_cg_go-cross-macos
+	-podman volume rm ova_cg_go-gomod ova_cg_go-gocache-windows ova_cg_go-gocache-macos
 
 # ---- Installation ----
 #

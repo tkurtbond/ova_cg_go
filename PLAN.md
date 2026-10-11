@@ -58,6 +58,8 @@ testdata/                   the fixtures, copied, kept the same
 test/                       files.sh, cli.sh, quit.sh, viewer.sh,
                             fake-viewer.sh, fake-gdbus.sh
 tools/                      rulebook-headings.py (copied), with-sway.sh
+cross/                      the Windows and macOS builds' Containerfiles
+                            and build.sh (CROSS.md)
 GNUmakefile                 make, make test, make test-headless, ...
 ```
 
@@ -181,6 +183,12 @@ goroutine keeps it from being a zombie. `TestSpawn` checks the same
 facts: its own session, no terminal, standard files `/dev/null`, the
 arguments exact, `ENOENT`, `Capture`'s output whole.
 
+For the Windows cross build, the two calls Windows lacks are in
+`spawn_unix.go` and `spawn_windows.go`: `Setsid` becomes
+`CREATE_NEW_PROCESS_GROUP`, `SIGTERM` `TerminateProcess`. The start
+time comes from `/proc`, so on Windows and macOS `Alive` is always
+false and `Terminate` ends nothing. Only Linux runs the tests.
+
 ### viewer (OvaViewer)
 
 The same: `Choose`/`FindRulebook`, `Default`, `Parse`, `Name`,
@@ -193,7 +201,8 @@ names stay package variables, so `TestViewer` runs on
 ### prefs (FlPreferences' part)
 
 A small `key=value` file, `$XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs` (else
-`~/.config/...`), holding `rulebook` and `viewer`, written (through a
+`~/.config/...`; on Windows, which usually sets neither, under
+`os.UserConfigDir`'s `%AppData%`), holding `rulebook` and `viewer`, written (through a
 `.tmp` and rename) only when one is chosen. Not Fyne's `Preferences`:
 those live under Fyne's own storage root, keyed by the application ID,
 and a test couldn't point them at `obj/` as easily. A test opens its
@@ -277,6 +286,25 @@ anything. While the window fills its widgets from the character
   focused widget (above), Ctrl+PgDn and Ctrl+PgUp should work from a
   multi-line entry too, unlike FLTK's; not checked on the real
   program.
+- **Windows and macOS are cross-built in podman containers**
+  (`cross/`, `make windows`, `make macos`, 2026-10-11): `golang` images
+  (Debian trixie) with MinGW-w64, and with osxcross, pinned to a
+  commit, for a universal amd64+arm64 macOS binary (deployment target
+  11.0). The macOS SDK can't be redistributed, so the user supplies it
+  in `cross/sdk/`. The Windows `.exe` started and ran 25 s under Wine on
+  Xvfb; the macOS build hasn't been run (no SDK here) or tried on a
+  Mac. Neither is packaged (`fyne package`, an `.app`, an icon) or
+  signed, and their default viewer is still `xdg-open`, which neither
+  has: a template viewer works. CROSS.md has the details.
+- **On Windows the preferences are under `%AppData%`** (2026-10-11,
+  found writing CROSS.md). `prefs.DefaultPath` used `XDG_CONFIG_HOME`,
+  else `HOME`, and Windows usually sets neither, which put the file
+  under the working directory. ~~Use `os.UserConfigDir` there?~~
+  Decided: on Windows, when `XDG_CONFIG_HOME` is unset, it does; Linux
+  and macOS keep `~/.config`. `TestDefaultPath` fakes `runtime.GOOS`
+  and `os.UserConfigDir`; a Windows build under Wine printed
+  `C:\users\NAME\AppData\Roaming\ova_cg_go\ova_cg_go.prefs`. Wine
+  passes neither `HOME` nor `XDG_CONFIG_HOME` to a Windows program.
 - **No valgrind targets.** Go is memory-safe and collected; the
   equivalent checks are `go vet` and `go test -race` (`make check`).
 

@@ -3,7 +3,8 @@
 //
 // PLAN.md, "prefs": the part of FLTK's Fl_Preferences ova_cg_po used. A
 // small file of "name=value" lines, at
-// $XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs (else ~/.config/...), written
+// $XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs (else ~/.config/..., or
+// %AppData%\... on Windows), written
 // whole, through NAME.tmp and a rename, each time a value is set. In a
 // value, "\" is "\\" and a line feed "\n"; a line that isn't a
 // "name=value" is ignored.
@@ -13,6 +14,7 @@ import (
 	"bufio"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -23,10 +25,23 @@ type Prefs struct {
 	values map[string]string
 }
 
+// goos and userConfigDir are runtime.GOOS and os.UserConfigDir, which
+// a test replaces to take Windows' way on Linux.
+var (
+	goos          = runtime.GOOS
+	userConfigDir = os.UserConfigDir
+)
+
 // DefaultPath is the preferences' file: $XDG_CONFIG_HOME (else
-// ~/.config), then ova_cg_go/ova_cg_go.prefs.
+// ~/.config; on Windows, which usually sets neither, os.UserConfigDir's
+// %AppData%), then ova_cg_go/ova_cg_go.prefs.
 func DefaultPath() string {
 	dir := os.Getenv("XDG_CONFIG_HOME")
+	if dir == "" && goos == "windows" {
+		if d, err := userConfigDir(); err == nil {
+			dir = d
+		}
+	}
 	if dir == "" {
 		dir = filepath.Join(os.Getenv("HOME"), ".config")
 	}

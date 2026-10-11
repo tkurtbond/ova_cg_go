@@ -55,4 +55,22 @@ func TestDefaultPath(t *testing.T) {
 	if DefaultPath() != "/home/u/.config/ova_cg_go/ova_cg_go.prefs" {
 		t.Error("else under ~/.config")
 	}
+
+	// Windows: %AppData%, from os.UserConfigDir, unless XDG_CONFIG_HOME
+	// is set.
+	defer func(g string, u func() (string, error)) { goos, userConfigDir = g, u }(goos, userConfigDir)
+	goos = "windows"
+	userConfigDir = func() (string, error) { return `C:\Users\u\AppData\Roaming`, nil }
+	if DefaultPath() != filepath.Join(`C:\Users\u\AppData\Roaming`, "ova_cg_go", "ova_cg_go.prefs") {
+		t.Error("on Windows, under %AppData%")
+	}
+	t.Setenv("XDG_CONFIG_HOME", "/x/config")
+	if DefaultPath() != "/x/config/ova_cg_go/ova_cg_go.prefs" {
+		t.Error("on Windows, under XDG_CONFIG_HOME if it is set")
+	}
+	t.Setenv("XDG_CONFIG_HOME", "")
+	userConfigDir = func() (string, error) { return "", os.ErrNotExist }
+	if DefaultPath() != "/home/u/.config/ova_cg_go/ova_cg_go.prefs" {
+		t.Error("on Windows with no %AppData%, under ~/.config")
+	}
 }

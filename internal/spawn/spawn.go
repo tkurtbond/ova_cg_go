@@ -66,7 +66,7 @@ func Detached(args []string) (Process, error) {
 	if err != nil {
 		return Process{}, err
 	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = detachedAttr()
 	if err := cmd.Start(); err != nil {
 		return Process{}, errno(err)
 	}
@@ -133,11 +133,11 @@ func (p *Process) Alive() bool {
 	return p.Pid > 0 && p.start >= 0 && startTime(p.Pid) == p.start
 }
 
-// Terminate ends p with SIGTERM, if it is still running, and makes it
-// none. Only a process this program started is ended, never one found by
-// name, which could be the user's own.
+// Terminate ends p (SIGTERM; on Windows, TerminateProcess), if it is
+// still running, and makes it none. Only a process this program started
+// is ended, never one found by name, which could be the user's own.
 func (p *Process) Terminate() bool {
-	ok := p.Alive() && syscall.Kill(p.Pid, syscall.SIGTERM) == nil
+	ok := p.Alive() && terminate(p.Pid) == nil
 	*p = Process{}
 	return ok
 }

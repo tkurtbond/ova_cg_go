@@ -34,7 +34,8 @@ PDF..., else `~/Reference/RPG/OVA/`), and `-v`/`--viewer` the viewer
 (`okular`, `evince`, `mupdf`, `xdg-open`, or a command with `%f` for
 the PDF, `%p` its page and `%l` the printed page), else the one chosen
 with Rulebook > Viewer.... Those two choices are kept in
-`$XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs` (else under `~/.config`). A file
+`$XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs` (else under `~/.config`;
+on Windows, under `%AppData%`). A file
 that can't be read, or holds mistakes, is reported and the program
 exits with status 1; a mistake on the command line exits with status 2.
 The program needs a display (`DISPLAY` or `WAYLAND_DISPLAY`); without
@@ -219,9 +220,16 @@ make uninstall
 make clean
 ```
 
+### Windows and macOS
+
+`make windows` and `make macos` cross-build in podman containers, into
+`obj/cross/`. macOS needs Apple's SDK, which you supply. See
+[CROSS.md](CROSS.md).
+
 ## Documents
 
 - [PLAN.md](PLAN.md): how the port maps ova_cg_po to Go and Fyne, what
   it decided differently, and what it found.
 - [AGENTS.md](AGENTS.md): working notes on the build and the tests.
+- [CROSS.md](CROSS.md): building for Windows and macOS.
 - ova_cg_po's PLAN.md: the design, and the rules the program computes.

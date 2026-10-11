@@ -1,0 +1,3 @@
+# Apple's macOS SDK, which may not be committed (macos.Containerfile).
+*
+!.gitignore
