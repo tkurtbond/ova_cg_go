@@ -203,10 +203,10 @@ own file in a temporary directory.
 
 | Oberon / FLTK | Go / Fyne |
 |---|---|
-| `Fl.DoubleWindow`, 1280 x 800, resizable | `fyne.Window`, `Resize(1280, 800)`; each tab's two halves a `container.Split` (a grid of two made each half as wide as the wider, and the window 1422 wide) |
+| `Fl.DoubleWindow`, 640 x 800, resizable | `fyne.Window`, `Resize(640, 800)`; each tab one column (its content's least width 544, the Fluff tab's) |
 | `FlMenus.MenuBar` | `fyne.MainMenu` (File, Character, Rulebook); shortcuts `desktop.CustomShortcut` with `KeyModifierShortcutDefault` |
 | Character > Transformed form, a toggle | a `fyne.MenuItem` with `Checked` |
-| `FlLayout.Tabs` | `container.AppTabs` ("Character", "Background") |
+| `FlLayout.Tabs` | `container.AppTabs` ("Character", "Attacks", "Background", "Fluff") |
 | `FlBrowsers.HoldBrowser` with a page column | `widget.List`, each row a name label and a right-hand page label |
 | `FlMenus.Choice` of labels | `widget.Select` of `rules.Label`s |
 | `FlValuators.Spinner` | `ui.Spinner`: a bounded integer with `-` and `+` buttons (Fyne has none) |
@@ -217,15 +217,15 @@ own file in a temporary directory.
 | modal `Fl.DoubleWindow` dialogs | `dialog.NewCustomWithoutButtons` on the main window, with their own OK/Cancel/Close buttons (modal, in-window); Escape is ours (`Window.Escape`, "Findings") |
 | `FlDialogs.Message`, `Choice`, `Input` | custom dialogs: one button, three buttons, an entry with OK and Cancel |
 | `NativeFileChooser` | `dialog.NewFileOpen` / `NewFileSave`, filtered by extension |
-| `FlImages` portrait, scaled | `canvas.Image`, `FillMode` contain, in a fixed 160 x 200 box (smaller than po_ova_cg's, so the Background tab fits 800 high) |
+| `FlImages` portrait, scaled | `canvas.Image`, `FillMode` contain, in a fixed 160 x 200 box (smaller than po_ova_cg's, so the Fluff tab fits 800 high) |
 | `FlLayout.Grid` of fluff | `container.NewGridWithColumns(4)` |
 | `FlLayout.Scroll` of attack rows | `container.NewVScroll` of a `VBox` of rows |
 | red text (`SetTextColor(Fl.Red)`) | `widget.Label` with `Importance = widget.DangerImportance` |
 | `Fl.AddTimeout(rebuild, 0)` after a row's Remove | not needed: Fyne lets a callback replace its own row (rebuilt directly) |
 
 Absolute pixel positions become Fyne layouts (borders, grids, boxes):
-the same widgets in the same places relative to each other, the sheet's
-right half on the first tab and its left half on the second.
+the same widgets in the same places relative to each other, one
+column to a tab.
 
 **Nothing in the window waits for the user**, as in po_ova_cg: a
 message, the save-first question, the file choosers, a line of text and
@@ -314,6 +314,51 @@ test-headless` for the program itself) and its entry here marked
    `--rulebook`, `-v`/`--viewer`, one file), the file loaded before the
    display is looked for, the display check; `test/cli.sh`;
    `test/quit.sh` on Xvfb; README's user guide.
+
+10. **The Sample NPCs** (po_ova_cg's Phase 10, and its Witchcraft
+   curses). [done]
+   - `entities`: `npc-type` (`NpcType`, `NpcTypeName`, an unknown type
+     an error) and `character-hooks`; the 30 NPC fixtures and the
+     re-synced ones copied from po_ova_cg's `test/data/`.
+   - `character.SetNpcType` sets the sheet's kind: Secondary
+     `CompanionSheet`, Extra the new `calc.ExtraSheet` (10 and 10, TV
+     1). `save` writes both, and no END of 0 unless overridden. The
+     window's NPC Type `Select` beside the tagline, each type with its
+     page (`rules.PageLabel`, `NpcTypesPage`); the Background tab's
+     Character Hooks editor after Personality.
+   - Witchcraft (`rules.CastsWeaknesses`): its spells cast Weaknesses at
+     -3 to -1, costed by their size (`calc`), and the spell dialog lists
+     Weaknesses (`LinkedDialog.CastKind`, `SpellKind`).
+   - Where the book's samples differ from the rules, and why: po_ova_cg's
+     `CHARACTER-DIFFERENCES.md`, which holds here too (`save_test`
+     expects the same notices).
+11. **Up to three Defense values** (po_ova_cg's Phase 11). [done]
+   - `entities`: `OvDefense2` (`barrier` still read as it) and
+     `OvDefense3`; more than three values an error.
+   - `rules.ThirdDefense` on Incorporeal Form; `calc`'s `Incorporeal`
+     (`computeAlternate`, shared with Barrier's); TV the best of the
+     three. The perk flags (`RollEach` on) start at 24, past the
+     Abilities' and Weaknesses'.
+   - `character.adoptDefenses`, `BestDefense`, `SingleDefense`;
+     `save.defenses` as `OvaSave.Defenses`.
+   - The window's and the linked dialog's Incorporeal DEFENSE box under
+     Barrier's, the last number box (`Incorporeal`,
+     `partnerIncorporeal`), shown or active only with Incorporeal Form.
+12. **A narrower window** (po_ova_cg's Phase 12): 640 wide, four tabs
+   of one column, the `container.Split`s gone. The combat box and the
+   numbers are the Attacks tab; the portrait, the fluff and the notes
+   the Fluff tab (`Background.fluff`). [done]
+
+   For 10-12, `calc_test`, `character_test` and `save_test` port
+   po_ova_cg's new checks (the NPC fixtures and their notices,
+   Defenses, Wisp, END 0, `npc-type` saved), and the window tests its
+   UI checks (the NPC type, Wisp's box, the tabs and the content's least
+   width, Character Hooks, Cora's curse, the partner's box). Nine bugs
+   planted in the UI (the type not shown, or always Secondary; the
+   Incorporeal box never shown, or always active in the dialog; the
+   tabs out of order, Background and Fluff swapped; curses as
+   Abilities; the curse message; Character Hooks not edited) each
+   failed them.
 
 `make test-viewers` and `make check-pages` were not run in the port's
 session: they need the real viewers and the rulebook's PDF. Run them

@@ -43,6 +43,9 @@ func checkCombat(t *testing.T, sample string, c *entities.Combat, s *calc.Sheet)
 	if s.HasBarrier {
 		def += "/" + s.Barrier.Text()
 	}
+	if s.HasIncorporeal {
+		def += "/" + s.Incorporeal.Text()
+	}
 	if def != c.Defense {
 		t.Errorf("%s: DEFENSE %s (got %s)", sample, c.Defense, def)
 	}

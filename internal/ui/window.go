@@ -1,10 +1,12 @@
 // Package ui is the program's window and its dialogs, in Fyne.
 //
-// po_ova_cg's PLAN.md, "The window". One window, a menu bar, and two
-// tabs: the first, "Character", is the sheet's right half: the names,
-// the Abilities and Weaknesses, the totals and warnings, the Combat
-// Notes, and the combat box, with a box beside every computed number for
-// its override; the second, "Background", the sheet's left half.
+// po_ova_cg's PLAN.md, "The window". One window, narrow enough to sit
+// beside the rulebook's viewer, a menu bar, and four tabs, each a
+// column: the first two the sheet's right half, "Character" (the names,
+// the NPC type, the Abilities and Weaknesses, the totals and warnings,
+// the Combat Notes) and "Attacks" (the combat box and the sheet's
+// numbers), with a box beside every computed number for its override;
+// the other two the sheet's left half, "Background" and "Fluff".
 //
 // The character is the Window's: every change a widget makes goes into
 // it, then character.Recompute, then the window shows it again, so no
@@ -34,6 +36,7 @@ import (
 
 	"github.com/tkurtbond/go_ova_cg/internal/calc"
 	"github.com/tkurtbond/go_ova_cg/internal/character"
+	"github.com/tkurtbond/go_ova_cg/internal/entities"
 	"github.com/tkurtbond/go_ova_cg/internal/paths"
 	"github.com/tkurtbond/go_ova_cg/internal/prefs"
 	"github.com/tkurtbond/go_ova_cg/internal/rules"
@@ -44,9 +47,9 @@ import (
 // Title is the window's title, before the file's name.
 const Title = "OVA Character Generator"
 
-// The window's size.
+// The window's size: a column, to sit beside the PDF viewer.
 const (
-	Width  = 1280
+	Width  = 640
 	Height = 800
 )
 
@@ -62,6 +65,7 @@ const (
 	WeaknessLevels
 	Total
 	Points
+	Incorporeal
 	NSheetNumbers
 )
 
@@ -94,22 +98,25 @@ type Window struct {
 	LimitsItem, TransformedItem                       *fyne.MenuItem
 	RulebookItem, ChoosePdfItem, ViewerItem           *fyne.MenuItem
 	Tabs                                              *container.AppTabs
-	SheetTab, BackgroundTab                           *container.TabItem
+	SheetTab, AttacksTab, BackgroundTab, FluffTab     *container.TabItem
 	NameIn, PlayerIn, TaglineIn                       *widget.Entry
-	Abilities, Weaknesses                             *TraitPanel
-	AbilityEnd                                        *NumberBox     // the chosen Ability's END
-	AbilityMods                                       *widget.Button // its Perks and Flaws
-	AbilityLinked                                     *widget.Button // its linked content: "Spells...", "Form...", ...
-	Numbers                                           [NSheetNumbers]*NumberBox
-	Warnings                                          *lines
-	CombatNotes                                       *widget.Entry
-	Rows                                              []*AttackRow // the combat box's, in order
-	rowBox                                            *fyne.Container
-	AddAttack                                         *widget.Button
-	Background                                        *Background
-	Attack                                            *AttackDialog   // nil when closed
-	Linked                                            *LinkedDialog   // nil when closed
-	Settings                                          *SettingsDialog // nil when closed
+	// The NPC type: item 0 none, then entities.Heroic, Secondary, Extra,
+	// each at its constant + 1.
+	NpcTypeIn             *widget.Select
+	Abilities, Weaknesses *TraitPanel
+	AbilityEnd            *NumberBox     // the chosen Ability's END
+	AbilityMods           *widget.Button // its Perks and Flaws
+	AbilityLinked         *widget.Button // its linked content: "Spells...", "Form...", ...
+	Numbers               [NSheetNumbers]*NumberBox
+	Warnings              *lines
+	CombatNotes           *widget.Entry
+	Rows                  []*AttackRow // the combat box's, in order
+	rowBox                *fyne.Container
+	AddAttack             *widget.Button
+	Background            *Background
+	Attack                *AttackDialog   // nil when closed
+	Linked                *LinkedDialog   // nil when closed
+	Settings              *SettingsDialog // nil when closed
 
 	// The character, the file it came from or was saved to ("": none),
 	// and whether it has changed since.
@@ -289,7 +296,7 @@ func warningText(wn *calc.Warning) string {
 	case calc.RedirectableAlone:
 		r += "Redirectable without Ranged (p. 86)"
 	case calc.SpellRange:
-		r += ": a spell's level, or its Magic's, isn't 1 to 5: no cost (p. 58)"
+		r += ": a spell's level isn't 1 to 5 (or -1 to -3, a Weakness), or its Magic's isn't 1 to 5: no cost (p. 58)"
 	case calc.TableRange:
 		r += "Tough, Vigorous or Endurance Reserve past +5, counted as +5"
 	case calc.BaseZeroBroken:
@@ -320,13 +327,13 @@ func (w *Window) showWarnings() {
 func (w *Window) pointNumbers() {
 	c := w.Character
 	for i, n := range []*calc.Number{&c.Defense, &c.Barrier, &c.Health, &c.Endurance, &c.Reserve, &c.TV,
-		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points} {
+		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points, &c.Incorporeal} {
 		w.Numbers[i].Target = n
 	}
 }
 
-// showNumbers shows every number box again: Barrier's and the Reserve's
-// only when the character has them, Scaled Cost's points only under it.
+// showNumbers shows every number box again: Barrier's, Incorporeal
+// Form's and the Reserve's only when the character has them, Scaled Cost's points only under it.
 // A total a limit finds too high is red (p. 21): Base Zero's the
 // Character Total, or the points under Scaled Cost; a Power Ceiling's or
 // the starting levels' the Abilities'.
@@ -340,6 +347,7 @@ func (w *Window) showNumbers() {
 	w.Numbers[Points].SetRed(baseZero && c.Options.ScaledCost)
 	w.Numbers[AbilityLevels].SetRed(c.Warned(calc.CeilingBroken) || c.Warned(calc.StartingBroken))
 	visible(c.HasBarrier, w.Numbers[Barrier].Object())
+	visible(c.HasIncorporeal, w.Numbers[Incorporeal].Object())
 	visible(c.HasReserve, w.Numbers[Reserve].Object())
 	visible(c.Options.ScaledCost, w.Numbers[Points].Object())
 	for _, r := range w.Rows {
@@ -498,6 +506,40 @@ func (w *Window) showRows() {
 	w.showNumbers()
 }
 
+// ---- The NPC type ----
+
+// npcTypeLabels are the NPC type's choices: none, then each type with
+// its page.
+func npcTypeLabels() []string {
+	l := []string{"none"}
+	for k := entities.Heroic; k <= entities.Extra; k++ {
+		l = append(l, rules.PageLabel(entities.NpcTypeName(k), rules.NpcTypesPage))
+	}
+	return l
+}
+
+// npcTypeChosen follows the NPC type chosen: the sheet's kind, so its
+// Health, Endurance and TV, follow it (p. 123-124).
+func (w *Window) npcTypeChosen() {
+	if w.filling {
+		return
+	}
+	if i := w.NpcTypeIn.SelectedIndex(); i <= 0 {
+		character.SetNpcType(w.Character, false, 0)
+	} else {
+		character.SetNpcType(w.Character, true, entities.NpcType(i-1))
+	}
+	w.changed()
+}
+
+func (w *Window) showNpcType() {
+	if w.Character.HasNpcType {
+		w.NpcTypeIn.SetSelectedIndex(int(w.Character.NpcType) + 1)
+	} else {
+		w.NpcTypeIn.SetSelectedIndex(0)
+	}
+}
+
 // ---- The transformed form, and the limits ----
 
 // editLimits is Character > Limits...: the settings dialog, which tells
@@ -539,6 +581,7 @@ func (w *Window) showAll() {
 	w.PlayerIn.SetText(c.Player)
 	w.TaglineIn.SetText(c.Tagline)
 	w.CombatNotes.SetText(c.CombatNotes)
+	w.showNpcType()
 	w.filling = false
 	w.pointNumbers()
 	w.Abilities.Show(&c.Sheet, nil, c)
@@ -722,7 +765,8 @@ func (w *Window) textEntry(multi bool, set func(string)) *widget.Entry {
 	return e
 }
 
-func (w *Window) buildSheetTab() fyne.CanvasObject {
+// buildSheetTabs is the first two tabs: Character, and Attacks.
+func (w *Window) buildSheetTabs() (sheet, attacks fyne.CanvasObject) {
 	w.NameIn = w.textEntry(false, func(s string) { w.Character.Name = trim(s) })
 	w.PlayerIn = w.textEntry(false, func(s string) {
 		character.SetText(&w.Character.HasPlayer, &w.Character.Player, trim(s))
@@ -745,11 +789,13 @@ func (w *Window) buildSheetTab() fyne.CanvasObject {
 	w.Warnings = newLines()
 	w.rowBox = container.NewVBox()
 	w.AddAttack = widget.NewButton("Add attack...", w.addAttack)
+	w.NpcTypeIn = widget.NewSelect(npcTypeLabels(), func(string) { w.npcTypeChosen() })
 
 	names := container.New(layout.NewFormLayout(),
 		widget.NewLabel("Character Name"), container.NewBorder(nil, nil, nil,
 			container.NewHBox(widget.NewLabel("Player Name"), sized(w.PlayerIn, 160, 0)), w.NameIn),
-		widget.NewLabel("Tagline"), w.TaglineIn)
+		widget.NewLabel("Tagline"), container.NewBorder(nil, nil, nil,
+			container.NewHBox(widget.NewLabel("NPC Type"), sized(w.NpcTypeIn, 160, 0)), w.TaglineIn))
 	totals := container.NewHBox(
 		w.sheetBox(AbilityLevels, "Abilities"), w.sheetBox(WeaknessLevels, "Weaknesses"),
 		w.sheetBox(Total, "Character Total"), w.sheetBox(Points, "Scaled Cost points"))
@@ -774,19 +820,19 @@ func (w *Window) buildSheetTab() fyne.CanvasObject {
 		sized(widget.NewLabel("ROLL"), number, 0), sized(widget.NewLabel("DX"), number, 0),
 		sized(widget.NewLabel("END"), number, 0), sized(widget.NewLabel(""), buttons, 0)),
 		widget.NewLabel("Name"))
-	sheet := container.NewHBox(
-		w.sheetBox(Defense, "DEFENSE"), w.sheetBox(Barrier, "Barrier DEFENSE"), w.sheetBox(Health, "HEALTH"),
-		w.sheetBox(Endurance, "ENDURANCE"), w.sheetBox(Reserve, "Reserve"), w.sheetBox(TV, "TV"))
+	// Incorporeal Form's Defense under Barrier's: each is shown only
+	// when the character has it.
+	numbers := container.NewHBox(
+		w.sheetBox(Defense, "DEFENSE"),
+		container.NewVBox(w.sheetBox(Barrier, "Barrier DEFENSE"), w.sheetBox(Incorporeal, "Incorporeal DEFENSE")),
+		w.sheetBox(Health, "HEALTH"), w.sheetBox(Endurance, "ENDURANCE"), w.sheetBox(Reserve, "Reserve"),
+		w.sheetBox(TV, "TV"))
 	right := container.NewBorder(
 		container.NewVBox(bold("Attacks"), header),
-		container.NewVBox(container.NewHBox(w.AddAttack), sheet),
+		container.NewVBox(container.NewHBox(w.AddAttack), numbers),
 		nil, nil,
 		container.NewVScroll(w.rowBox))
-	// A split, not a grid of two: a grid makes each half as wide as the
-	// wider, which made the window wider than Width.
-	split := container.NewHSplit(left, right)
-	split.SetOffset(0.5)
-	return split
+	return left, right
 }
 
 // New is the window, not yet shown, in app a, with a new character.
@@ -803,9 +849,12 @@ func New(a fyne.App) *Window {
 	w.buildMenu()
 	w.Win.SetMainMenu(w.Menu)
 	w.Background = newBackground(w)
-	w.SheetTab = container.NewTabItem("Character", w.buildSheetTab())
+	sheet, attacks := w.buildSheetTabs()
+	w.SheetTab = container.NewTabItem("Character", sheet)
+	w.AttacksTab = container.NewTabItem("Attacks", attacks)
 	w.BackgroundTab = container.NewTabItem("Background", w.Background.object)
-	w.Tabs = container.NewAppTabs(w.SheetTab, w.BackgroundTab)
+	w.FluffTab = container.NewTabItem("Fluff", w.Background.fluff)
+	w.Tabs = container.NewAppTabs(w.SheetTab, w.AttacksTab, w.BackgroundTab, w.FluffTab)
 	w.Win.SetContent(w.Tabs)
 	w.Win.Resize(fyne.NewSize(Width, Height))
 	w.Win.SetCloseIntercept(w.Quit)

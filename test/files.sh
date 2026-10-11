@@ -8,9 +8,10 @@
 # A fixture that loaded with notices (numbers that differ from the rules
 # without its overrides: listing them) saves with those numbers listed,
 # so its copy prints them with po_ova_fmt's "*" (or "\*") after them.
-# For such a fixture (po_ova_fmt's own three, named here, as the save
-# tests expect their notices), the two outputs are compared with that
-# mark taken out of both; the save tests check that the copy lists every
+# For such a fixture (po_ova_fmt's own three, and those of the Sample
+# NPCs and the generator's own whose numbers aren't the rules', named
+# here, as the save tests expect their notices), the two outputs are
+# compared with that mark taken out of both; the save tests check that the copy lists every
 # such number, since it reloads with no notices. Every other fixture's
 # copy must format exactly the same, so an override listed wrongly shows.
 #
@@ -32,7 +33,10 @@ for saved in obj/files/*.yaml; do
   orig=testdata/$name.yaml
   [ -f "$orig" ] || continue
   case $name in
-    Escaping|Unsorted|Vehicle) filter=unmark; but=", but for its overrides' marks" ;;
+    # Its copy gains Incorporeal Form's Defense, which the file left out
+    # (save_test's TestDefenses checks it).
+    defense-two) continue ;;
+    Escaping|Unsorted|Vehicle|Nazo|defense-best-differs) filter=unmark; but=", but for its overrides' marks" ;;
     *) filter=cat; but= ;;
   esac
   for opt in "" -H -G -M -g -m -O; do

@@ -282,6 +282,17 @@ func TestSpells(t *testing.T) {
 	Compute(s)
 	c.int(&cc.End, 0, "Magic 5, Quick 1")
 	c.text(&a.End, "2+", "Magic 5, Barrier 2")
+	// Witchcraft's curses: Weaknesses, at Arcane's costs, by their size
+	// (p. 58); Acacia's, at Magic 3 (p. 134).
+	magic = tr(&s.Traits, "Magic, Witchcraft", 3)
+	a = sp(magic, "Frail", -2)
+	b = sp(magic, "Weak", -3)
+	cc = sp(magic, "Slow", -4)
+	Compute(s)
+	c.int(&a.End, 10, "Witchcraft 3, Frail -2")
+	c.int(&b.End, 20, "Witchcraft 3, Weak -3")
+	c.int(&cc.End, 0, "Slow -4 is out of the table")
+	c.ok(s.Warned(SpellRange), "and warned")
 }
 
 // TestStats: Defense, Barrier, Health, Endurance, Endurance Reserve, by
@@ -306,6 +317,26 @@ func TestStats(t *testing.T) {
 	c.int(&s.Endurance, 60, "ENDURANCE 40 + Vigorous 3's 30 - Languid 1's 10")
 	c.ok(s.HasReserve, "Reserve")
 	c.int(&s.Reserve, 40, "Endurance Reserve 2")
+	c.ok(!s.HasIncorporeal, "no Incorporeal Form")
+
+	s = NewSheet(Character, nil)
+	tr(&s.Traits, "Incorporeal Form", 3)
+	Compute(s)
+	c.ok(s.HasIncorporeal && !s.HasBarrier, "Incorporeal Form")
+	c.int(&s.Incorporeal, 5, "Incorporeal Form's Defense 2 + 3")
+	c.int(&s.TV, 8, "TV: 2 + Incorporeal Form's Defense 5, the best, + 1")
+	tr(&s.Traits, "Barrier", 4)
+	Compute(s)
+	c.int(&s.Barrier, 6, "and Barrier's 2 + 4")
+	c.int(&s.TV, 9, "TV: Barrier's Defense 6 the best")
+	s.Incorporeal.Override(8, false, false)
+	Compute(s)
+	c.int(&s.TV, 11, "TV: Incorporeal Form's Defense overridden 8")
+	s.Incorporeal.Clear()
+	tr(&s.Traits, "Incorporeal Form", 3)
+	s.Options.CombinedEffectiveness = true
+	Compute(s)
+	c.ok(s.Warned(OverFive), "Combined Effectiveness: Incorporeal Form 6 past 5")
 
 	s = NewSheet(CompanionSheet, nil)
 	tr(&s.Traits, "Tough", 1)
@@ -320,6 +351,13 @@ func TestStats(t *testing.T) {
 	Compute(s)
 	c.int(&s.Health, 10, "Minions' HEALTH")
 	c.int(&s.Endurance, 10, "Minions' ENDURANCE")
+	s = NewSheet(ExtraSheet, nil)
+	tr(&s.Traits, "Tough", 1)
+	tr(&s.Traits, "Armored", 3)
+	Compute(s)
+	c.int(&s.Health, 20, "an Extra's HEALTH 10 + Tough 1")
+	c.int(&s.Endurance, 10, "an Extra's ENDURANCE")
+	c.int(&s.TV, 1, "an Extra's TV, always 1")
 }
 
 // TestThreatValue: TV (p. 124): Armored, the signed Health and Endurance

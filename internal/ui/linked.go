@@ -12,7 +12,8 @@ package ui
 //     with its page; the selected Ability's Perks and Flaws and END.
 //   - Spells, a Magic's (p. 57-58): each spell's name, the Ability it
 //     mimics, its level, and its END, computed from the Magic's level and
-//     its own, with an override box.
+//     its own, with an override box. Witchcraft's spells are curses: the
+//     Weakness each casts, at -1 to -3 (p. 58; rules.CastsWeaknesses).
 //   - A partner's sheet, a Companion's (p. 52) or a Vehicle's (p. 64):
 //     its name, whether it is a Fragment, whether it has combat stats,
 //     its Abilities and Weaknesses, its attacks (edited in the attack
@@ -38,8 +39,11 @@ import (
 )
 
 // A partner's numbers, LinkedDialog.Numbers' indices: the first six of
-// the window's.
-const nPartnerNumbers = TV + 1
+// the window's, then Incorporeal Form's Defense.
+const (
+	partnerIncorporeal = TV + 1
+	nPartnerNumbers    = partnerIncorporeal + 1
+)
 
 // LinkedDialog is an Ability's linked content.
 type LinkedDialog struct {
@@ -58,10 +62,12 @@ type LinkedDialog struct {
 	Spells                             *lines
 	SpellName                          *widget.Entry
 	SpellAbility                       *widget.Select
+	SpellKind                          *widget.Label // SpellAbility's label: Ability, or Weakness
 	SpellLevel                         *Spinner
 	SpellHelp                          *HelpButton
 	AddSpell, ChangeSpell, RemoveSpell *widget.Button
 	SpellEnd                           *NumberBox
+	CastKind                           rules.Kind // what the spells mimic: Ability, or Weakness for Witchcraft
 
 	// A partner's:
 	PartnerName                         *widget.Entry
@@ -182,8 +188,12 @@ func (d *LinkedDialog) showSpells(sel int) {
 	var rows [][]string
 	for _, sp := range d.trait.Spells {
 		x := character.SpellOf(sp)
+		sign := ""
+		if x.Level > 0 {
+			sign = "+"
+		}
 		rows = append(rows, []string{x.Name,
-			x.Ability + " +" + strconv.Itoa(x.Level) + " (" + rules.PageText(x.Item) + ")",
+			x.Ability + " " + sign + strconv.Itoa(x.Level) + " (" + rules.PageText(x.Item) + ")",
 			"END " + x.End.Text()})
 	}
 	d.Spells.Set(rows, sel)
@@ -197,18 +207,20 @@ func (d *LinkedDialog) showSpells(sel int) {
 	d.SpellEnd.Display()
 }
 
-// spellItem is the Ability chosen; nil for none.
+// spellItem is the Ability (or Weakness) chosen; nil for none.
 func (d *LinkedDialog) spellItem() *rules.Item {
 	i := d.SpellAbility.SelectedIndex()
-	if i < 0 || i >= rules.Count(rules.Ability) {
+	if i < 0 || i >= rules.Count(d.CastKind) {
 		return nil
 	}
-	return rules.Get(rules.Ability, i)
+	return rules.Get(d.CastKind, i)
 }
 
+// chooseSpellItem chooses it in the Select; none for nil, or an item of
+// the other kind (a spell the Magic can't cast, from a file).
 func (d *LinkedDialog) chooseSpellItem(it *rules.Item) {
 	d.filling = true
-	if it != nil && it.Kind == rules.Ability {
+	if it != nil && it.Kind == d.CastKind {
 		d.SpellAbility.SetSelectedIndex(rules.Index(it))
 	} else {
 		d.SpellAbility.ClearSelected()
@@ -220,8 +232,8 @@ func (d *LinkedDialog) chooseSpellItem(it *rules.Item) {
 	}
 }
 
-// PickSpellAbility chooses the Ability named name, as the user does: for
-// tests.
+// PickSpellAbility chooses the Ability (or Weakness) named name, as the
+// user does: for tests.
 func (d *LinkedDialog) PickSpellAbility(name string) {
 	d.SpellAbility.SetSelectedIndex(rules.Index(rules.Find(name)))
 }
@@ -237,8 +249,8 @@ func (d *LinkedDialog) spellSelected(i int) {
 
 // spellButton is what Add, Change and Remove do: Add puts the spell
 // last; Change and Remove need one selected. A spell needs a name and an
-// Ability; one changed keeps an Ability the tables don't have if none is
-// chosen.
+// Ability (a Weakness, Witchcraft's); one changed keeps one the Select
+// doesn't have if none is chosen.
 func (d *LinkedDialog) spellButton(b *widget.Button) {
 	line := d.Spells.Selected()
 	x := d.spellAt(line)
@@ -251,7 +263,11 @@ func (d *LinkedDialog) spellButton(b *widget.Button) {
 		character.RemoveSpell(&d.trait.Trait, &x.Spell)
 		line = -1
 	case name == "" || it == nil && (b == d.AddSpell || x == nil || x.Item != nil):
-		d.w.tell("A spell needs a name and the Ability it mimics.")
+		if d.CastKind == rules.Weakness {
+			d.w.tell("A curse needs a name and the Weakness it casts.")
+		} else {
+			d.w.tell("A spell needs a name and the Ability it mimics.")
+		}
 		return
 	case b == d.AddSpell:
 		sp := character.NewSpell(name, it.Name, it, d.SpellLevel.Value())
@@ -334,10 +350,12 @@ func (d *LinkedDialog) showAll() {
 			b.Display()
 		}
 		// With no combat stats, nothing of combat is saved: all of it
-		// inactive. Barrier's Defense and the Reserve only with them.
+		// inactive. Barrier's and Incorporeal Form's Defense and the
+		// Reserve only with them.
 		enable(p.HasCombat, d.AddAttack, d.EditAttack, d.RemoveAttack)
 		for i, b := range d.Numbers {
-			enable(p.HasCombat && (i != Barrier || p.HasBarrier) && (i != Reserve || p.HasReserve), b)
+			enable(p.HasCombat && (i != Barrier || p.HasBarrier) && (i != partnerIncorporeal || p.HasIncorporeal) &&
+				(i != Reserve || p.HasReserve), b)
 		}
 	}
 }
@@ -367,9 +385,15 @@ func (d *LinkedDialog) buildSpells() fyne.CanvasObject {
 	d.Spells = newLines(320, 90)
 	d.Spells.OnSelect = d.spellSelected
 	d.SpellName = widget.NewEntry()
-	labels := make([]string, rules.Count(rules.Ability))
+	d.CastKind = rules.Ability
+	d.SpellKind = widget.NewLabel("Ability")
+	if d.trait.Item.Flags.Has(rules.CastsWeaknesses) {
+		d.CastKind = rules.Weakness
+		d.SpellKind.SetText("Weakness")
+	}
+	labels := make([]string, rules.Count(d.CastKind))
 	for i := range labels {
-		labels[i] = rules.Label(rules.Get(rules.Ability, i))
+		labels[i] = rules.Label(rules.Get(d.CastKind, i))
 	}
 	d.SpellAbility = widget.NewSelect(labels, func(string) {
 		if !d.filling {
@@ -377,7 +401,11 @@ func (d *LinkedDialog) buildSpells() fyne.CanvasObject {
 		}
 	})
 	d.SpellHelp = NewHelpButton(0, d.w.openPage)
-	d.SpellLevel = NewSpinner(1, 5, 1)
+	if d.CastKind == rules.Weakness {
+		d.SpellLevel = NewSpinner(-3, -1, -1)
+	} else {
+		d.SpellLevel = NewSpinner(1, 5, 1)
+	}
 	d.SpellEnd = d.numberBox("END", false)
 	d.SpellEnd.AllowPlus = true
 	d.AddSpell = widget.NewButton("Add", func() { d.spellButton(d.AddSpell) })
@@ -388,7 +416,7 @@ func (d *LinkedDialog) buildSpells() fyne.CanvasObject {
 		sized(d.Spells.List, 0, 300),
 		container.NewGridWithColumns(2,
 			container.NewBorder(nil, nil, widget.NewLabel("Name"), nil, d.SpellName),
-			container.NewBorder(nil, nil, widget.NewLabel("Ability"), d.SpellHelp, d.SpellAbility)),
+			container.NewBorder(nil, nil, d.SpellKind, d.SpellHelp, d.SpellAbility)),
 		container.NewHBox(widget.NewLabel("level"), d.SpellLevel, d.SpellEnd.Object()),
 		container.NewHBox(d.AddSpell, d.ChangeSpell, d.RemoveSpell))
 	d.showSpells(-1)
@@ -420,13 +448,18 @@ func (d *LinkedDialog) buildPartner() fyne.CanvasObject {
 	d.AddAttack = widget.NewButton("Add...", func() { d.attackButton(d.AddAttack) })
 	d.EditAttack = widget.NewButton("Edit...", func() { d.attackButton(d.EditAttack) })
 	d.RemoveAttack = widget.NewButton("Remove", func() { d.attackButton(d.RemoveAttack) })
-	var boxes []fyne.CanvasObject
-	for i, n := range []*calc.Number{&p.Defense, &p.Barrier, &p.Health, &p.Endurance, &p.Reserve, &p.TV} {
-		b := d.numberBox([]string{"DEFENSE", "Barrier DEFENSE", "HEALTH", "ENDURANCE", "Reserve", "TV"}[i], true)
+	for i, n := range []*calc.Number{&p.Defense, &p.Barrier, &p.Health, &p.Endurance, &p.Reserve, &p.TV,
+		&p.Incorporeal} {
+		b := d.numberBox([]string{"DEFENSE", "Barrier DEFENSE", "HEALTH", "ENDURANCE", "Reserve", "TV",
+			"Incorporeal DEFENSE"}[i], true)
 		b.Target = n
 		d.Numbers[i] = b
-		boxes = append(boxes, b.Object())
 	}
+	// Incorporeal Form's Defense under Barrier's, as in the window.
+	boxes := []fyne.CanvasObject{d.Numbers[Defense].Object(),
+		container.NewVBox(d.Numbers[Barrier].Object(), d.Numbers[partnerIncorporeal].Object()),
+		d.Numbers[Health].Object(), d.Numbers[Endurance].Object(), d.Numbers[Reserve].Object(),
+		d.Numbers[TV].Object()}
 	o := container.NewVBox(
 		container.NewBorder(nil, nil, widget.NewLabel("Name"), container.NewHBox(d.Fragment, d.Combat),
 			d.PartnerName),
@@ -460,8 +493,13 @@ func (w *Window) EditLinked(c *character.Character, t *character.Trait, done fun
 	case rules.Form:
 		body = d.buildForm()
 	case rules.Spells:
-		d.Info.SetText("Magic +" + strconv.Itoa(t.Level) +
-			": a spell's END is by the Magic's level and its own (p. 58), more for Barrier.")
+		if t.Item.Flags.Has(rules.CastsWeaknesses) {
+			d.Info.SetText("Magic +" + strconv.Itoa(t.Level) +
+				": a curse casts a Weakness; its END is by the Magic's level and the Weakness's size (p. 58).")
+		} else {
+			d.Info.SetText("Magic +" + strconv.Itoa(t.Level) +
+				": a spell's END is by the Magic's level and its own (p. 58), more for Barrier.")
+		}
 		body = d.buildSpells()
 	default:
 		if d.Mode == rules.Partner {

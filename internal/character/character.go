@@ -40,6 +40,16 @@ import (
 // NFluff is how many fluff fields there are.
 const NFluff = entities.NFluff
 
+// Slot is one of the Defense values, in the order a combat: block's
+// defense holds them (BestDefense).
+type Slot int
+
+const (
+	DefenseSlot Slot = iota
+	BarrierSlot
+	IncorporealSlot
+)
+
 // Note is a headed note.
 type Note struct {
 	Header, Text string
@@ -55,19 +65,31 @@ type Character struct {
 	HasTagline, HasSummary        bool
 	HasBackground, HasAppearance  bool
 	HasPersonality, HasOtherNotes bool
+	HasCharacterHooks             bool
 	Tagline, Summary              string
 	Background, Appearance        string
 	Personality, OtherNotes       string
-	Notes                         []*Note
-	HasFluff                      bool
-	HasFluffField                 [NFluff]bool
-	Fluff                         [NFluff]string
-	HasOptions                    bool // an options: block, even an empty one
-	IsFragment                    bool // an NPC Fragment, or a simple Companion
-	HasCombat                     bool // a combat: block: a Fragment or Companion may have none
-	HasThreatValue                bool
-	HasCombatNotes                bool
-	CombatNotes                   string
+	CharacterHooks                string
+	// npc-type: entities.Heroic, Secondary or Extra; it sets the sheet's
+	// kind (SetNpcType).
+	HasNpcType     bool
+	NpcType        entities.NpcType
+	Notes          []*Note
+	HasFluff       bool
+	HasFluffField  [NFluff]bool
+	Fluff          [NFluff]string
+	HasOptions     bool // an options: block, even an empty one
+	IsFragment     bool // an NPC Fragment, or a simple Companion
+	HasCombat      bool // a combat: block: a Fragment or Companion may have none
+	HasThreatValue bool
+	// The file gave one Defense though Barrier or Incorporeal Form gives
+	// another, as the book's Sample NPCs have it: the best, saved so, the
+	// others left out (SingleDefense). singleSlot, the slot it was read
+	// into, BestDefense's then.
+	OmitAlternates bool
+	singleSlot     Slot
+	HasCombatNotes bool
+	CombatNotes    string
 }
 
 // Trait is an Ability or Weakness.
@@ -209,6 +231,33 @@ func newCharacter(k calc.SheetKind) *Character {
 // New is a new, empty character.
 func New() *Character { return newCharacter(calc.Character) }
 
+// kindOf is the sheet kind of an NPC type (p. 123-124): a Heroic NPC's
+// is a character's, a Secondary's a Companion's, an Extra's its own; no
+// type is a character's.
+func kindOf(has bool, k entities.NpcType) calc.SheetKind {
+	switch {
+	case !has || k == entities.Heroic:
+		return calc.Character
+	case k == entities.Secondary:
+		return calc.CompanionSheet
+	}
+	return calc.ExtraSheet
+}
+
+// SetNpcType sets c's NPC type (has false: none), and so its sheet's
+// kind: Recompute after.
+func SetNpcType(c *Character, has bool, k entities.NpcType) {
+	if has && (k < entities.Heroic || k > entities.Extra) {
+		panic("character.SetNpcType: no such NPC type")
+	}
+	c.HasNpcType = has
+	c.NpcType = entities.Heroic
+	if has {
+		c.NpcType = k
+	}
+	c.Kind = kindOf(has, k)
+}
+
 // mods adds l's Perks (isFlaw false) or Flaws to *list.
 func mods(l []*entities.PerkFlaw, isFlaw bool, list *[]*calc.Mod) {
 	for _, pf := range l {
@@ -287,6 +336,8 @@ func Build(e *entities.Entity) *Character {
 	c.HasBackground, c.Background = e.HasBackground, e.Background
 	c.HasAppearance, c.Appearance = e.HasAppearance, e.Appearance
 	c.HasPersonality, c.Personality = e.HasPersonality, e.Personality
+	c.HasCharacterHooks, c.CharacterHooks = e.HasCharacterHooks, e.CharacterHooks
+	SetNpcType(c, e.HasNpcType, e.NpcType)
 	c.HasOtherNotes, c.OtherNotes = e.HasOtherNotes, e.OtherNotes
 	c.IsFragment = e.IsFragment
 	for _, a := range e.Abilities {
@@ -334,6 +385,41 @@ func Build(e *entities.Entity) *Character {
 
 type adopter struct{ notices []string }
 
+// BestDefense is c's best Defense value, its slot: the Defense, or an
+// alternate c has that is higher than those before it.
+func BestDefense(c *Character) Slot {
+	best, value := DefenseSlot, c.Defense.Get()
+	if c.HasBarrier && c.Barrier.Get() > value {
+		best, value = BarrierSlot, c.Barrier.Get()
+	}
+	if c.HasIncorporeal && c.Incorporeal.Get() > value {
+		best = IncorporealSlot
+	}
+	return best
+}
+
+// SingleDefense says whether c's defense is saved as one value, and
+// which, slot: the file gave one (OmitAlternates), and the only value
+// overridden, if any, is the one it was read into. It is saved, or else
+// the best.
+func SingleDefense(c *Character) (slot Slot, single bool) {
+	n := 0
+	slot = BestDefense(c)
+	if c.Defense.Overridden {
+		n++
+		slot = DefenseSlot
+	}
+	if c.Barrier.Overridden {
+		n++
+		slot = BarrierSlot
+	}
+	if c.Incorporeal.Overridden {
+		n++
+		slot = IncorporealSlot
+	}
+	return slot, c.OmitAlternates && (n == 0 || n == 1 && slot == c.singleSlot)
+}
+
 // adopt takes the file's text for n: n's override if listed (the
 // mapping's overrides: names it), or if it differs from the computed
 // number, with a notice. Text that isn't a number for n is noted and
@@ -364,6 +450,42 @@ func (ad *adopter) adoptInt(n *calc.Number, i int, listed bool, where, what stri
 
 func within(where, name string) string { return where + ": " + name }
 
+// adoptDefense takes the file's value v for Defense slot slot of c.
+func (ad *adopter) adoptDefense(c *Character, slot Slot, v string, listed bool, where string) {
+	switch slot {
+	case DefenseSlot:
+		ad.adopt(&c.Defense, v, false, false, listed, where, "DEFENSE")
+	case BarrierSlot:
+		ad.adopt(&c.Barrier, v, false, false, listed, where, "Barrier's DEFENSE")
+	case IncorporealSlot:
+		ad.adopt(&c.Incorporeal, v, false, false, listed, where, "Incorporeal Form's DEFENSE")
+	}
+}
+
+// adoptDefenses takes the Defense values of x's defense: one is the best
+// of c's, two its Defense and its first alternate, three its Defense,
+// Barrier's and Incorporeal Form's (ova_fmt allows no more).
+func (ad *adopter) adoptDefenses(x *entities.Combat, c *Character, where string) {
+	v := strings.SplitN(x.Defense, "/", 3)
+	if len(v) == 1 {
+		c.OmitAlternates = c.HasBarrier || c.HasIncorporeal
+		c.singleSlot = BestDefense(c)
+		ad.adoptDefense(c, c.singleSlot, v[0], x.Overrides.Has(entities.OvDefense), where)
+		return
+	}
+	ad.adoptDefense(c, DefenseSlot, v[0], x.Overrides.Has(entities.OvDefense), where)
+	if len(v) == 3 {
+		ad.adoptDefense(c, BarrierSlot, v[1], x.Overrides.Has(entities.OvDefense2), where)
+		ad.adoptDefense(c, IncorporealSlot, v[2], x.Overrides.Has(entities.OvDefense3), where)
+		return
+	}
+	second := BarrierSlot
+	if !c.HasBarrier && c.HasIncorporeal {
+		second = IncorporealSlot
+	}
+	ad.adoptDefense(c, second, v[1], x.Overrides.Has(entities.OvDefense2), where)
+}
+
 // adoptCombat takes the numbers of a combat: block but TV.
 func (ad *adopter) adoptCombat(x *entities.Combat, c *Character, where string) {
 	if !x.HasCombat {
@@ -376,13 +498,7 @@ func (ad *adopter) adoptCombat(x *entities.Combat, c *Character, where string) {
 		ad.adopt(&a.DX, y.DX, true, false, y.Overrides.Has(entities.OvDx), at, "DX")
 		ad.adoptInt(&a.End, y.Endurance, y.Overrides.Has(entities.OvEndurance), at, "END")
 	}
-	if slash := strings.IndexByte(x.Defense, '/'); slash < 0 {
-		ad.adopt(&c.Defense, x.Defense, false, false, x.Overrides.Has(entities.OvDefense), where, "DEFENSE")
-	} else {
-		ad.adopt(&c.Defense, x.Defense[:slash], false, false, x.Overrides.Has(entities.OvDefense), where, "DEFENSE")
-		ad.adopt(&c.Barrier, x.Defense[slash+1:], false, false, x.Overrides.Has(entities.OvBarrier), where,
-			"Barrier's DEFENSE")
-	}
+	ad.adoptDefenses(x, c, where)
 	ad.adoptInt(&c.Health, x.Health, x.Overrides.Has(entities.OvHealth), where, "HEALTH")
 	ad.adoptInt(&c.Endurance, x.Endurance, x.Overrides.Has(entities.OvEndurance), where, "ENDURANCE")
 }

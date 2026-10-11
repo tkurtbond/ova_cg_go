@@ -73,13 +73,33 @@ const (
 	OvDx
 	OvEndurance
 	OvDefense
-	OvBarrier
+	OvDefense2
+	OvDefense3
 	OvHealth
 	OvThreatValue
 	nOverrides
 )
 
-var overrideKeys = [nOverrides]string{"roll", "dx", "endurance", "defense", "barrier", "health", "threat-value"}
+var overrideKeys = [nOverrides]string{
+	"roll", "dx", "endurance", "defense", "defense-2", "defense-3", "health", "threat-value",
+}
+
+// NpcType is an npc-type: (rulebook p. 133, "Using NPC Type"), an NPC's
+// importance to the story: the Ada NPC_Kind. Matched ignoring case;
+// anything else is a recorded error. See NpcTypeName.
+type NpcType int
+
+const (
+	Heroic NpcType = iota
+	Secondary
+	Extra
+	NNpcTypes
+)
+
+var npcTypeNames = [NNpcTypes]string{"Heroic", "Secondary", "Extra"}
+
+// NpcTypeName is the rulebook's capitalization of npc-type k ("Heroic").
+func NpcTypeName(k NpcType) string { return npcTypeNames[k] }
 
 // KeyName is k's YAML spelling ("threat-value").
 func KeyName(k Override) string { return overrideKeys[k] }
@@ -223,9 +243,13 @@ type Entity struct {
 	HasTagline, HasSummary        bool
 	HasBackground, HasAppearance  bool
 	HasPersonality, HasOtherNotes bool
+	HasCharacterHooks             bool
 	Tagline, Summary              string // trimmed
 	Background, Appearance        string
 	Personality, OtherNotes       string
+	CharacterHooks                string
+	HasNpcType                    bool
+	NpcType                       NpcType     // Heroic, Secondary or Extra
 	Abilities                     []*Ability  // sorted
 	Weaknesses                    []*Weakness // sorted
 	Combat                        Combat
@@ -600,6 +624,11 @@ func (l *Loader) loadOverrides(m node, allowed Overrides) Overrides {
 				break
 			}
 		}
+		// defense-2's name before there could be a third value.
+		if !found && allowed.Has(OvDefense2) && item.n.Value == "barrier" {
+			o = o.With(OvDefense2)
+			found = true
+		}
 		if !found {
 			var names []string
 			for k := Override(0); k < nOverrides; k++ {
@@ -611,6 +640,25 @@ func (l *Loader) loadOverrides(m node, allowed Overrides) Overrides {
 		}
 	}
 	return o
+}
+
+// loadNpcType reads m's npc-type:, if any: the Ada Load_NPC_Type.
+// Anything but one of the three names is a recorded error, like an
+// overrides: name: silently dropping it would lose the type from the
+// output. A value that isn't a scalar fails the Load, as any optional
+// string's does.
+func (l *Loader) loadNpcType(m node) (bool, NpcType, error) {
+	there, raw, err := optString(m, "npc-type")
+	if err != nil || !there {
+		return false, Heroic, err
+	}
+	for k := Heroic; k < NNpcTypes; k++ {
+		if FoldCI(Trim(raw)) == FoldCI(NpcTypeName(k)) {
+			return true, k, nil
+		}
+	}
+	l.record(m, "npc-type", `"`+raw+`" is not one of Heroic, Secondary, Extra`)
+	return false, Heroic, nil
 }
 
 // ---- Perks and Flaws ----
@@ -699,6 +747,9 @@ func (l *Loader) loadCombat(m node, c *Combat) error {
 	var err error
 	c.HasCombat = true
 	c.Defense = l.requireString(m, "defense")
+	if strings.Count(c.Defense, "/") > 2 {
+		l.record(m, "defense", `"`+c.Defense+`" has more than three values`)
+	}
 	c.Health = l.requireInteger(m, "health")
 	c.Endurance = l.requireInteger(m, "endurance")
 	if c.HasThreatValue, c.ThreatValue, err = optInteger(m, "threat-value"); err != nil {
@@ -714,7 +765,7 @@ func (l *Loader) loadCombat(m node, c *Combat) error {
 		return err
 	}
 	c.Notes = Trim(c.Notes)
-	c.Overrides = l.loadOverrides(m, overridesOf(OvEndurance, OvDefense, OvBarrier, OvHealth, OvThreatValue))
+	c.Overrides = l.loadOverrides(m, overridesOf(OvEndurance, OvDefense, OvDefense2, OvDefense3, OvHealth, OvThreatValue))
 	return nil
 }
 
@@ -918,11 +969,17 @@ func (l *Loader) loadEntity(m node, e *Entity) error {
 		{"background", &e.HasBackground, &e.Background},
 		{"appearance", &e.HasAppearance, &e.Appearance},
 		{"personality", &e.HasPersonality, &e.Personality},
-		{"other-notes", &e.HasOtherNotes, &e.OtherNotes},
+		{"character-hooks", &e.HasCharacterHooks, &e.CharacterHooks},
 	} {
 		if err = prose(m, p.key, p.has, p.s); err != nil {
 			return err
 		}
+	}
+	if e.HasNpcType, e.NpcType, err = l.loadNpcType(m); err != nil {
+		return err
+	}
+	if err = prose(m, "other-notes", &e.HasOtherNotes, &e.OtherNotes); err != nil {
+		return err
 	}
 	if e.HasPortrait, e.Portrait, err = optString(m, "portrait"); err != nil {
 		return err

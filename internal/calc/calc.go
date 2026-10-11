@@ -2,9 +2,10 @@
 //
 // po_ova_cg's PLAN.md, "The rules the program computes" and "Limiting
 // the character": each attack's ROLL, DX and END; the END of an Ability
-// with Perks and Flaws or Endurance Use, and of each spell; DEFENSE and
-// Barrier's second Defense; HEALTH, ENDURANCE, Endurance Reserve and TV;
-// the running totals; and the warnings of broken limits.
+// with Perks and Flaws or Endurance Use, and of each spell; DEFENSE,
+// Barrier's and Incorporeal Form's alternate Defenses; HEALTH,
+// ENDURANCE, Endurance Reserve and TV; the running totals; and the
+// warnings of broken limits.
 //
 // A character is given as a Sheet of Traits (its Abilities and
 // Weaknesses) and Attacks, each Attack and Trait with its Perks and
@@ -38,6 +39,7 @@ const (
 	Character      SheetKind = iota // 40 and 40 (p. 19); a Vehicle's too (p. 64)
 	CompanionSheet                  // 20 and 20 (p. 52); TV 4 less, at least 1, a Secondary NPC's (p. 123-124)
 	MinionSheet                     // 10 and 10 (p. 58)
+	ExtraSheet                      // 10 and 10 (p. 123); TV always 1, an Extra's (p. 124)
 )
 
 // Code is a warning's kind. Each names what it is about in its trait,
@@ -51,7 +53,7 @@ const (
 	CostRange                       // mod: a chosen cost outside its range, or not in steps of 5 (p. 87-88)
 	NoDamageIneffective             // attack: No Damage with Ineffective (p. 88)
 	RedirectableAlone               // attack: Redirectable without Ranged (p. 86)
-	SpellRange                      // spell: its level, or its Magic's, not 1 to 5: no cost (p. 58)
+	SpellRange                      // spell: its Magic's level not 1 to 5, or its own not 1 to 5 or -1 to -3: no cost (p. 58)
 	TableRange                      // Tough, Vigorous or Endurance Reserve past +5 in all: counted as +5
 	BaseZeroBroken                  // the Character Total (or points) beyond Base Zero's range (p. 21)
 	StartingBroken                  // Abilities beyond the starting levels and the Weaknesses' (p. 21)
@@ -158,20 +160,22 @@ type Warning struct {
 // Sheet is a character's (or a partner's) Traits and Attacks, and every
 // number computed from them.
 type Sheet struct {
-	Owner       any
-	Kind        SheetKind
-	Traits      []*Trait // in the order added
-	Attacks     []*Attack
-	Transformed bool // shown in the transformed form, as Fukiko's sheet is
-	Options     Options
-	Defense     Number
-	Barrier     Number
-	Health      Number
-	Endurance   Number
-	Reserve     Number
-	TV          Number
-	HasBarrier  bool
-	HasReserve  bool
+	Owner          any
+	Kind           SheetKind
+	Traits         []*Trait // in the order added
+	Attacks        []*Attack
+	Transformed    bool // shown in the transformed form, as Fukiko's sheet is
+	Options        Options
+	Defense        Number
+	Barrier        Number
+	Incorporeal    Number
+	Health         Number
+	Endurance      Number
+	Reserve        Number
+	TV             Number
+	HasBarrier     bool
+	HasIncorporeal bool
+	HasReserve     bool
 	// The running totals: levels (Knowledge and Ineptitude halved if the
 	// options say so), the Character Total, and Scaled Cost's points
 	// (abilities' less weaknesses').
@@ -545,7 +549,9 @@ func (s *Sheet) computeAttack(a *Attack) {
 
 // computeTrait gives an Ability's or Weakness's own warnings and END,
 // and its spells' costs (p. 58): by the Magic's level and the spell's,
-// "+" for an Ability that spends Endurance of its own (Barrier).
+// "+" for an Ability that spends Endurance of its own (Barrier). A
+// spell at -1 to -3 casts a Weakness, as Witchcraft's do, at the same
+// costs (p. 58): by its size, as Acacia's curses cost (p. 134).
 func (s *Sheet) computeTrait(t *Trait) {
 	if t.Item == nil {
 		s.warn(UnknownItem, t, nil, nil, nil)
@@ -562,8 +568,13 @@ func (s *Sheet) computeTrait(t *Trait) {
 	}
 	s.checkMods(t.Mods, t, nil)
 	for _, sp := range t.Spells {
-		if t.Level >= 1 && t.Level <= maxLevel && sp.Level >= 1 && sp.Level <= maxLevel {
-			sp.End.setComputed(rules.SpellCost(t.Level, sp.Level), false, sp.Item.Has(rules.OwnCost))
+		size := sp.Level
+		if size < 0 {
+			size = -size
+		}
+		if t.Level >= 1 && t.Level <= maxLevel &&
+			(sp.Level >= 1 && sp.Level <= maxLevel || sp.Level <= -1 && sp.Level >= minWeakness) {
+			sp.End.setComputed(rules.SpellCost(t.Level, size), false, sp.Item.Has(rules.OwnCost))
 		} else {
 			sp.End.set(0)
 			s.warn(SpellRange, t, nil, nil, sp)
@@ -571,24 +582,32 @@ func (s *Sheet) computeTrait(t *Trait) {
 	}
 }
 
-// computeDefense: Defense (p. 105), and Barrier's (p. 51).
-func (s *Sheet) computeDefense() {
+// computeAlternate: an alternate Defense Roll, 2 + the levels of what
+// has flag (p. 51, 55), into n; has, whether the character has one.
+func (s *Sheet) computeAlternate(flag rules.Flag, n *Number, has *bool) {
 	form := s.Transformed
-	d := 2 + s.sum(rules.DefenseRoll, form)
-	s.Defense.set(d)
-	if s.Options.CombinedEffectiveness && d-2 > combinedLimit {
-		s.warn(OverFive, nil, nil, nil, nil)
-	}
-	s.HasBarrier = s.present(rules.SecondDefense, form)
-	if s.HasBarrier {
-		d = 2 + s.sum(rules.SecondDefense, form)
-		s.Barrier.set(d)
+	*has = s.present(flag, form)
+	if *has {
+		d := 2 + s.sum(flag, form)
+		n.set(d)
 		if s.Options.CombinedEffectiveness && d-2 > combinedLimit {
 			s.warn(OverFive, nil, nil, nil, nil)
 		}
 	} else {
-		s.Barrier.set(0)
+		n.set(0)
 	}
+}
+
+// computeDefense: Defense (p. 105), and Barrier's (p. 51) and
+// Incorporeal Form's (p. 55).
+func (s *Sheet) computeDefense() {
+	d := 2 + s.sum(rules.DefenseRoll, s.Transformed)
+	s.Defense.set(d)
+	if s.Options.CombinedEffectiveness && d-2 > combinedLimit {
+		s.warn(OverFive, nil, nil, nil, nil)
+	}
+	s.computeAlternate(rules.SecondDefense, &s.Barrier, &s.HasBarrier)
+	s.computeAlternate(rules.ThirdDefense, &s.Incorporeal, &s.HasIncorporeal)
 }
 
 // computeHealth: Health and Endurance (p. 107), from the sheet's base,
@@ -600,7 +619,7 @@ func (s *Sheet) computeHealth() {
 	switch s.Kind {
 	case CompanionSheet:
 		base = companionBase
-	case MinionSheet:
+	case MinionSheet, ExtraSheet:
 		base = minionBase
 	}
 	s.Health.set(base + rules.ToughBonus(s.tableLevel(s.sum(rules.HealthTable, form))) +
@@ -655,6 +674,9 @@ func (s *Sheet) computeTV() {
 	if s.HasBarrier && s.Barrier.Get() > def {
 		def = s.Barrier.Get()
 	}
+	if s.HasIncorporeal && s.Incorporeal.Get() > def {
+		def = s.Incorporeal.Get()
+	}
 	tv := roll + def + dx + s.sum(rules.Armor, form) +
 		s.sum(rules.HealthTable, form) + s.sum(rules.HealthTens, form) +
 		s.sum(rules.EnduranceTable, form) + s.sum(rules.EnduranceTens, form)
@@ -671,6 +693,8 @@ func (s *Sheet) computeTV() {
 		if tv < 1 {
 			tv = 1
 		}
+	} else if s.Kind == ExtraSheet {
+		tv = 1
 	}
 	s.TV.set(tv)
 }

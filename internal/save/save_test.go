@@ -64,8 +64,15 @@ func roundTrip(t *testing.T, name string, want int) {
 
 // TestFixtures: the samples' numbers are all the rules', given the keys
 // the fixtures carry, but the book's two rulings, which their
-// overrides: list. Sheet uses every key. po_ova_fmt's own fixtures'
-// numbers were never the rules', so they come back as overrides.
+// overrides: list. Sheet uses every key; Defenses and Wisp, the three
+// Defense values, and Incorporeal Form's alone. po_ova_fmt's own
+// fixtures' numbers were never the rules', so they come back as
+// overrides. The Sample NPCs: a Secondary NPC's sheet is a Companion's
+// (npc-type:), so Dr. Tomori's and Jiro's numbers are the rules'; Nazo's
+// and Shadowman's single Defense is their best, as the book prints it,
+// but Nazo's TV is the book's own (po_ova_cg's CHARACTER-DIFFERENCES.md).
+// Acacia and Zurkrieg hold more than one entity (TestErrors). The NPC
+// Fragments have no combat: block, so nothing to compare.
 func TestFixtures(t *testing.T) {
 	for _, x := range []struct {
 		name string
@@ -73,8 +80,15 @@ func TestFixtures(t *testing.T) {
 	}{
 		{"Ai", 0}, {"Auren", 0}, {"Braun", 0}, {"Cora", 0}, {"Daisuke", 0}, {"Fukiko", 0},
 		{"Karis", 0}, {"Miho", 0}, {"Natsuki", 0}, {"Raine", 0}, {"Shou", 0}, {"Yuu", 0},
-		{"Sheet", 0},
+		{"Sheet", 0}, {"Defenses", 0}, {"Wisp", 0},
 		{"Escaping", 5}, {"Unsorted", 8}, {"Vehicle", 5},
+		{"Ancel", 0}, {"Dr-Tomori", 0}, {"Jiro", 0}, {"Nazo", 1}, {"Saspar", 0}, {"Shadowman", 0},
+		{"Beat-Cop", 0}, {"Cat-Burglar", 0}, {"Dragon", 0}, {"Ebullient-Club-President", 0},
+		{"Ghosts", 0}, {"Goblin", 0}, {"GPL-Agents", 0}, {"Indebted-Yakuza", 0},
+		{"Magical-Fairies", 0}, {"Ninja", 0}, {"Oni", 0}, {"Sentry-Bots", 0}, {"Shady-Teacher", 0},
+		{"Shinto-Priest", 0}, {"Snobbish-Upperclassman", 0}, {"Spider-Tank", 0}, {"Thugs", 0},
+		{"Venomous-Killer", 0}, {"Weathered-Salaryman", 0}, {"Weird-Exchange-Student", 0},
+		{"Wild-Beast", 0}, {"Zombies", 0},
 	} {
 		t.Run(x.name, func(t *testing.T) { roundTrip(t, x.name, x.want) })
 	}
@@ -85,6 +99,8 @@ func TestErrors(t *testing.T) {
 		{dataDir + "Broken.yaml", "level"},
 		{dataDir + "Fragment.yaml", "holds 2 characters"},
 		{dataDir + "Options.yaml", "holds 2 characters"},
+		{dataDir + "Acacia.yaml", "holds 3 characters"},
+		{dataDir + "Zurkrieg.yaml", "holds 2 characters"},
 		{dataDir + "no-such-file.yaml", "no-such-file.yaml"},
 	} {
 		c, _, err := character.Load(x.path)
@@ -96,6 +112,77 @@ func TestErrors(t *testing.T) {
 	c.Name = "Nobody"
 	if err := Save(c, "../../obj/no-such-dir/x.yaml"); err == nil || err.Error() == "" {
 		t.Error("a save to a missing directory fails, with a message")
+	}
+}
+
+// holdsLine says whether text holds the line line.
+func holdsLine(text, line string) bool {
+	return strings.HasPrefix(text, line+"\n") || strings.Contains(text, "\n"+line+"\n")
+}
+
+// savesAs loads name and saves it: its text must hold the line want.
+func savesAs(t *testing.T, name, want string) {
+	t.Helper()
+	c, _, err := character.Load(dataDir + name + ".yaml")
+	if err != nil {
+		t.Fatalf("%s: loaded: %v", name, err)
+	}
+	if text := ToText(c); !holdsLine(text, want) {
+		t.Errorf("%s: saved with %s:\n%s", name, want, text)
+	}
+}
+
+// TestDefenses: up to three Defense values (po_ova_cg's PLAN.md, Phase
+// 11): one where the rules give more is the best; two, the Defense and
+// the first alternate; an overridden alternate the character doesn't
+// have is saved where it is read back.
+func TestDefenses(t *testing.T) {
+	t.Run("defense-best", func(t *testing.T) { roundTrip(t, "defense-best", 0) })
+	savesAs(t, "defense-best", "    defense: 4")
+	t.Run("defense-best-differs", func(t *testing.T) { roundTrip(t, "defense-best-differs", 1) })
+	savesAs(t, "defense-best-differs", "    defense: 3")
+	c, _, err := character.Load(dataDir + "defense-best-differs.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slot, single := character.SingleDefense(c); !c.Incorporeal.Overridden || c.Barrier.Overridden ||
+		c.Defense.Overridden || !single || slot != character.IncorporealSlot {
+		t.Error("defense-best-differs: read as Incorporeal Form's, the best by the rules, and saved as one")
+	}
+	t.Run("defense-two", func(t *testing.T) { roundTrip(t, "defense-two", 0) })
+	savesAs(t, "defense-two", "    defense: 2/3/4")
+
+	// One value, but another overridden since: all of them saved.
+	c, _, err = character.Load(dataDir + "defense-best.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Defense.Override(3, false, false)
+	character.Recompute(c)
+	text := ToText(c)
+	if _, single := character.SingleDefense(c); single || !holdsLine(text, "    defense: 3/4/4") ||
+		!holdsLine(text, "    overrides: [defense]") {
+		t.Errorf("defense-best, its DEFENSE overridden: saved with all three:\n%s", text)
+	}
+
+	// An overridden Incorporeal Form's Defense the character doesn't have:
+	// Barrier's is saved before it, so it is read back as the third.
+	c = character.New()
+	c.Name = "Ghostless"
+	c.Incorporeal.Override(7, false, false)
+	character.Recompute(c)
+	text = ToText(c)
+	if !holdsLine(text, "    defense: 2/0/7") || !holdsLine(text, "    overrides: [defense-3]") {
+		t.Errorf("an overridden Incorporeal Form's DEFENSE without it: saved third, after Barrier's 0:\n%s", text)
+	}
+	const path = "../../obj/ghostless.yaml"
+	if err := Save(c, path); err != nil {
+		t.Fatal(err)
+	}
+	c2, notices, err := character.Load(path)
+	if err != nil || len(notices) != 0 || !c2.Incorporeal.Overridden || c2.Incorporeal.Get() != 7 ||
+		c2.Barrier.Overridden {
+		t.Errorf("and read back as Incorporeal Form's, with no notice: %v %q", err, notices)
 	}
 }
 
@@ -181,5 +268,83 @@ func TestModelSaved(t *testing.T) {
 	}
 	if ToText(c2) != ToText(c) {
 		t.Error("and it saves the same")
+	}
+}
+
+// TestNpcTypeSaved: the NPC type sets the sheet's kind, and it and the
+// hooks are saved and loaded back (TestModel's).
+func TestNpcTypeSaved(t *testing.T) {
+	c := character.New()
+	c.Name = "Typed"
+	character.InsertTrait(&c.Traits, character.NewTrait(rules.Find("Tough"), rules.Ability, 1, "", ""))
+	character.Recompute(c)
+	if c.HasNpcType || c.Kind != calc.Character || c.Health.Get() != 50 {
+		t.Error("no NPC type: a character's sheet, HEALTH 40 + Tough 1")
+	}
+	character.SetNpcType(c, true, entities.Secondary)
+	character.Recompute(c)
+	if c.Kind != calc.CompanionSheet || c.Health.Get() != 30 || c.Endurance.Get() != 20 {
+		t.Error("Secondary: a Companion's sheet, HEALTH 20 + Tough 1, ENDURANCE 20")
+	}
+	character.SetNpcType(c, true, entities.Extra)
+	character.Recompute(c)
+	if c.Kind != calc.ExtraSheet || c.Health.Get() != 20 || c.TV.Get() != 1 {
+		t.Error("Extra: HEALTH 10 + Tough 1, TV 1")
+	}
+	character.SetNpcType(c, true, entities.Heroic)
+	character.Recompute(c)
+	if c.Kind != calc.Character || c.Health.Get() != 50 {
+		t.Error("Heroic: a character's sheet")
+	}
+	character.SetNpcType(c, true, entities.Secondary)
+	c.HasCharacterHooks, c.CharacterHooks = true, "Hooks."
+	character.Recompute(c)
+	if text := ToText(c); !strings.Contains(text, "npc-type: Secondary") ||
+		!strings.Contains(text, "character-hooks: Hooks.") {
+		t.Errorf("the type and the hooks saved:\n%s", text)
+	}
+	const path = savedDir + "model.yaml"
+	if err := Save(c, path); err != nil {
+		t.Fatal(err)
+	}
+	c2, notices, err := character.Load(path)
+	if err != nil || len(notices) != 0 || !c2.HasNpcType || c2.NpcType != entities.Secondary ||
+		c2.Kind != calc.CompanionSheet || c2.CharacterHooks != "Hooks." {
+		t.Errorf("loaded again: the type, so the sheet's kind, and the hooks; no notices: %v %q", err, notices)
+	}
+	character.SetNpcType(c, false, 0)
+	character.Recompute(c)
+	if c.HasNpcType || c.Kind != calc.Character || strings.Contains(ToText(c), "npc-type") {
+		t.Error("the type taken off: a character's sheet, nothing saved")
+	}
+}
+
+// TestEndZero: an Ability's END of 0 isn't written unless it is an
+// override (TestModel's).
+func TestEndZero(t *testing.T) {
+	c := character.New()
+	c.Name = "Free"
+	c.HasCombat = false
+	tr := character.NewTrait(rules.Find("Attack"), rules.Ability, 3, "", "")
+	character.InsertMod(&tr.Mods, character.NewMod(rules.Find("Armor Piercing"), false, 1, 0))
+	character.InsertMod(&tr.Mods, character.NewMod(rules.Find("Ranged"), false, 1, 0))
+	character.InsertMod(&tr.Mods, character.NewMod(rules.Find("Ineffective"), true, 1, 0))
+	character.InsertMod(&tr.Mods, character.NewMod(rules.Find("Weapon"), true, 1, 0))
+	character.InsertTrait(&c.Traits, tr)
+	character.Recompute(c)
+	if !tr.HasEnd || tr.End.Get() != 0 {
+		t.Fatal("Perks and Flaws costing nothing: END 0")
+	}
+	if strings.Contains(ToText(c), "endurance") {
+		t.Error("an END of 0 isn't written")
+	}
+	tr.End.Override(0, false, false)
+	if !strings.Contains(ToText(c), "endurance: 0") {
+		t.Error("unless it is an override")
+	}
+	tr.End.Clear()
+	tr.End.Override(5, false, false)
+	if !strings.Contains(ToText(c), "endurance: 5") {
+		t.Error("an override of 5 is")
 	}
 }

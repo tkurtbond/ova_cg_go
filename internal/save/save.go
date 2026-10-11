@@ -141,7 +141,9 @@ func traitNode(x *calc.Trait) *yaml.Node {
 	textPair(n, "detail", t.HasDetail, t.Detail)
 	mods(n, "perks", t.Mods, false)
 	mods(n, "flaws", t.Mods, true)
-	if t.HasEnd || t.End.Overridden {
+	// An END of 0 isn't written, as the fixtures don't write one; an
+	// override always is.
+	if t.HasEnd && t.End.Get() != 0 || t.End.Overridden {
 		pair(n, "endurance", num(&t.End))
 	}
 	textPair(n, "note", t.HasNote, t.Note)
@@ -194,16 +196,46 @@ func traits(m *yaml.Node, key string, list []*calc.Trait, kind rules.Kind) {
 
 // ---- Combat ----
 
+// defenses is c's defense and its overrides, added to *set: the best
+// value alone (SingleDefense), or the Defense, then Barrier's, then
+// Incorporeal Form's, each that c has or that is overridden. Barrier's
+// is written before an overridden Incorporeal Form's that c doesn't
+// have, which a second value alone would be read as
+// (character.adoptDefenses).
+func defenses(c *character.Character, set *entities.Overrides) string {
+	if slot, single := character.SingleDefense(c); single {
+		n := &c.Defense
+		switch slot {
+		case character.BarrierSlot:
+			n = &c.Barrier
+		case character.IncorporealSlot:
+			n = &c.Incorporeal
+		}
+		over(set, entities.OvDefense, n)
+		return n.Text()
+	}
+	def := c.Defense.Text()
+	over(set, entities.OvDefense, &c.Defense)
+	k := entities.OvDefense2
+	if c.HasBarrier || c.Barrier.Overridden || c.Incorporeal.Overridden && !c.HasIncorporeal {
+		def += "/" + c.Barrier.Text()
+		over(set, k, &c.Barrier)
+		k++
+	}
+	if c.HasIncorporeal || c.Incorporeal.Overridden {
+		def += "/" + c.Incorporeal.Text()
+		over(set, k, &c.Incorporeal)
+	}
+	return def
+}
+
 func combat(m *yaml.Node, c *character.Character) {
 	if !c.HasCombat {
 		return
 	}
 	n := mapping()
-	def := c.Defense.Text()
-	if c.HasBarrier || c.Barrier.Overridden {
-		def += "/" + c.Barrier.Text()
-	}
-	pair(n, "defense", plain(def))
+	var set entities.Overrides
+	pair(n, "defense", plain(defenses(c, &set)))
 	pair(n, "health", num(&c.Health))
 	pair(n, "endurance", num(&c.Endurance))
 	if c.HasThreatValue {
@@ -212,9 +244,6 @@ func combat(m *yaml.Node, c *character.Character) {
 	if c.Transformed {
 		pair(n, "transformed", boolean(true))
 	}
-	var set entities.Overrides
-	over(&set, entities.OvDefense, &c.Defense)
-	over(&set, entities.OvBarrier, &c.Barrier)
 	over(&set, entities.OvHealth, &c.Health)
 	over(&set, entities.OvEndurance, &c.Endurance)
 	if c.HasThreatValue {
@@ -274,6 +303,9 @@ func entity(c *character.Character) *yaml.Node {
 	if c.IsFragment {
 		pair(m, "fragment", boolean(true))
 	}
+	if c.HasNpcType {
+		pair(m, "npc-type", text(entities.NpcTypeName(c.NpcType)))
+	}
 	textPair(m, "player", c.HasPlayer, c.Player)
 	textPair(m, "portrait", c.HasPortrait, c.Portrait)
 	textPair(m, "tagline", c.HasTagline, c.Tagline)
@@ -281,6 +313,7 @@ func entity(c *character.Character) *yaml.Node {
 	textPair(m, "background", c.HasBackground, c.Background)
 	textPair(m, "appearance", c.HasAppearance, c.Appearance)
 	textPair(m, "personality", c.HasPersonality, c.Personality)
+	textPair(m, "character-hooks", c.HasCharacterHooks, c.CharacterHooks)
 	textPair(m, "other-notes", c.HasOtherNotes, c.OtherNotes)
 	if c.HasOptions {
 		o := mapping()

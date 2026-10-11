@@ -1,11 +1,12 @@
 package ui
 
-// The window's second tab: the sheet's left half, the fluff, and the
+// The window's last two tabs: the sheet's left half, the fluff, and the
 // notes (po_ova_cg's OvaBackground).
 //
-// po_ova_cg's PLAN.md, "The window", the second tab: the Summary;
-// Background, Appearance, Personality and Other Notes, each a multi-line
-// entry; the Character Portrait, an image file whose path is saved
+// po_ova_cg's PLAN.md, "The window", the third and fourth tabs.
+// "Background": the Summary; Background, Appearance, Personality,
+// Character Hooks and Other Notes, each a multi-line entry. "Fluff": the
+// Character Portrait, an image file whose path is saved
 // relative to the YAML file; the fluff fields (p. 20) in a grid; and the
 // headed notes ova_fmt prints as callouts (notes:), so everything a file
 // holds can be edited.
@@ -42,6 +43,7 @@ const (
 	ProseBackground = iota
 	ProseAppearance
 	ProsePersonality
+	ProseCharacterHooks
 	ProseOtherNotes
 	NProse
 )
@@ -61,12 +63,13 @@ var fluffLabels = [entities.NFluff]string{
 	entities.Enemies: "Enemies", entities.LoveInterests: "Love Interests",
 }
 
-// Background is the window's second tab.
+// Background is the window's last two tabs.
 type Background struct {
 	w       *Window
-	object  fyne.CanvasObject
-	fileDir string // the YAML file's directory, absolute; "": never saved
-	filling bool   // the widgets being set from the character: no change to report
+	object  fyne.CanvasObject // the Background tab
+	fluff   fyne.CanvasObject // the Fluff tab
+	fileDir string            // the YAML file's directory, absolute; "": never saved
+	filling bool              // the widgets being set from the character: no change to report
 
 	SummaryIn                       *widget.Entry
 	Prose                           [NProse]*widget.Entry
@@ -99,6 +102,8 @@ func (b *Background) proseOf(which int) (has *bool, text *string) {
 		return &c.HasAppearance, &c.Appearance
 	case ProsePersonality:
 		return &c.HasPersonality, &c.Personality
+	case ProseCharacterHooks:
+		return &c.HasCharacterHooks, &c.CharacterHooks
 	}
 	return &c.HasOtherNotes, &c.OtherNotes
 }
@@ -294,7 +299,7 @@ func newBackground(w *Window) *Background {
 			b.changed()
 		}
 	}
-	titles := [NProse]string{"Background", "Appearance", "Personality", "Other Notes"}
+	titles := [NProse]string{"Background", "Appearance", "Personality", "Character Hooks", "Other Notes"}
 	var prose []fyne.CanvasObject
 	for i := range b.Prose {
 		e := widget.NewMultiLineEntry()
@@ -337,7 +342,7 @@ func newBackground(w *Window) *Background {
 	b.ChangeNote = widget.NewButton("Change", func() { b.noteButton(b.ChangeNote) })
 	b.RemoveNote = widget.NewButton("Remove", func() { b.noteButton(b.RemoveNote) })
 
-	left := container.NewBorder(
+	b.object = container.NewBorder(
 		container.New(layout.NewFormLayout(), widget.NewLabel("Summary"), b.SummaryIn), nil, nil, nil,
 		container.NewGridWithRows(NProse, prose...))
 	portrait := container.NewHBox(
@@ -348,14 +353,9 @@ func newBackground(w *Window) *Background {
 		container.NewGridWithColumns(2, b.Notes.List,
 			container.NewBorder(container.New(layout.NewFormLayout(), widget.NewLabel("Header"), b.NoteHeader),
 				nil, nil, nil, b.NoteText)))
-	right := container.NewBorder(
+	b.fluff = container.NewBorder(
 		container.NewVBox(bold("Character Portrait"), portrait, container.NewGridWithColumns(4, fluff...),
 			bold("Notes")),
 		nil, nil, nil, notes)
-	// A split, as the sheet's (window.go): a grid of two would be twice
-	// the wider half.
-	split := container.NewHSplit(left, right)
-	split.SetOffset(0.5)
-	b.object = split
 	return b
 }

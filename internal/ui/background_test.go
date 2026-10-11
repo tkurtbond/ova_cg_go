@@ -33,6 +33,7 @@ func bgShown(w *Window) bool {
 		trim(b.Prose[ProseBackground].Text) == c.Background &&
 		trim(b.Prose[ProseAppearance].Text) == c.Appearance &&
 		trim(b.Prose[ProsePersonality].Text) == c.Personality &&
+		trim(b.Prose[ProseCharacterHooks].Text) == c.CharacterHooks &&
 		trim(b.Prose[ProseOtherNotes].Text) == c.OtherNotes &&
 		b.PortraitPath.Text == c.Portrait
 	for i, e := range b.FluffIn {
@@ -91,11 +92,13 @@ func TestBackground(t *testing.T) {
 	// ---- Shown from a file ----
 	ok := load(w, "Sheet.yaml")
 	c := w.Character
-	check(t, ok && bgShown(w), "Sheet.yaml: the summary, the four sections, the fluff and the portrait's path shown")
+	check(t, ok && bgShown(w), "Sheet.yaml: the summary, the prose sections, the fluff and the portrait's path shown")
 	check(t, c.HasBackground && c.HasAppearance && c.HasPersonality && c.HasOtherNotes && c.HasSummary &&
 		c.HasFluffField[entities.Concept], "and it has each")
 	check(t, b.PortraitPath.Text == "images/hana.png" && !b.ImageShown() && says("The image can't be read.") &&
 		!b.RemovePortrait.Disabled(), "its portrait, not there: the path, and why there's no image")
+	ok = load(w, "Jiro.yaml")
+	check(t, ok && bgShown(w) && w.Character.HasCharacterHooks, "Jiro.yaml: his Character Hooks shown")
 	ok = load(w, "Raine.yaml")
 	check(t, ok && len(w.Character.Notes) > 0 && notesShown(w), "Raine.yaml: the notes' headers listed")
 	check(t, b.Notes.Line(0) == "Nightmares", "the first, Nightmares")
@@ -119,6 +122,8 @@ func TestBackground(t *testing.T) {
 	check(t, !c.HasAppearance && c.Appearance == "" && !has("appearance:"), "emptied: not saved")
 	b.Prose[ProseOtherNotes].SetText("Owes two favors now.")
 	check(t, has("other-notes: Owes two favors now."), "Other Notes saved")
+	b.Prose[ProseCharacterHooks].SetText("Needs a courier.")
+	check(t, c.HasCharacterHooks && has("character-hooks: Needs a courier."), "Character Hooks saved")
 	b.SummaryIn.SetText("A schoolgirl and a storm.")
 	check(t, c.Summary == "A schoolgirl and a storm." && has("summary: A schoolgirl and a storm."),
 		"the summary typed and saved")

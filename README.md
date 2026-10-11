@@ -42,11 +42,12 @@ one it says so and exits with status 1.
 
 ## Using the window
 
-The window is the character sheet in two tabs: **Character**, the
-sheet's right half, and **Background**, its left. Every change goes
-into the character at once and every number is recomputed as you work;
-the title shows the file's name, and ` *` after it while there are
-unsaved changes.
+The window is the character sheet in four tabs, narrow enough to sit
+beside the rulebook in your PDF viewer: **Character** and **Attacks**,
+the sheet's right half, and **Background** and **Fluff**, its left.
+Every change goes into the character at once and every number is
+recomputed as you work; the title shows the file's name, and ` *`
+after it while there are unsaved changes.
 
 ### Menus
 
@@ -65,6 +66,12 @@ on top, unless a text field in it has the cursor.
 
 ### The Character tab
 
+**NPC Type**, beside the Tagline, is none for a player's character, or
+Heroic, Secondary or Extra for an NPC (p. 123): it sets where Health
+and Endurance start (40, 20 or 10) and the TV's last step (4 less for
+a Secondary NPC, always 1 for an Extra), and is saved with the
+character.
+
 **Abilities and Weaknesses.** Each list shows a trait's level, name
 and detail, and the rulebook page its name is on. To add one, choose
 its name from the menu under the list (each name shows its page), set
@@ -81,7 +88,8 @@ content turns the button under the Weaknesses into one for it:
 - **Form...**, a Transformation's: the transformed form's Abilities
   and Weaknesses, two levels for each level of Transformation.
 - **Spells...**, a Magic's: each spell's name, the Ability it mimics,
-  its level, and its END.
+  its level, and its END. Witchcraft's spells are curses: each casts a
+  Weakness, at -1 to -3, and costs by the Weakness's size (p. 58).
 - **Companion...** or **Vehicle...**: the partner's own sheet: its
   name, whether it is a Fragment, whether it has combat stats, and its
   Abilities, Weaknesses, attacks and numbers.
@@ -96,20 +104,6 @@ the pages of the rules: a name the rulebook doesn't have (shown with
 `p. ?`), a level out of range, a Perk taken too often, a Perk or Flaw
 the rules don't allow with the others, a limit broken. A total a limit
 finds too high turns red.
-
-**Attacks.** Each attack is a row with its ROLL, DX and END. **Add
-attack...** and **Edit** open the attack dialog: the attack's name,
-affinity and description, whether it is made with Telekinesis or in
-the transformed form, and its Perks and Flaws, chosen as the traits
-are, with how many times (for one that can be taken more than once)
-and a cost (for one whose cost you choose: Cancel, Requirement,
-Unique). Its ROLL, DX and END follow each change. **OK** keeps it;
-**Cancel** puts it back as it was, and takes out an attack just added.
-**Remove** deletes the row's attack.
-
-Below the attacks are DEFENSE, HEALTH, ENDURANCE and TV, with
-Barrier's second DEFENSE and an Endurance Reserve when the character
-has them.
 
 **Overrides.** Beside every computed number is an empty box. Type a
 number there to override it, for a GM's ruling, a house rule, or a
@@ -131,10 +125,30 @@ cost, and Combined Effectiveness. Each number is active only while its
 rule is on, and each rule has a **?**. The window follows each change;
 **OK** keeps them, and **Cancel** or Escape puts them back. They are saved with the character.
 
+### The Attacks tab
+
+**Attacks.** Each attack is a row with its ROLL, DX and END. **Add
+attack...** and **Edit** open the attack dialog: the attack's name,
+affinity and description, whether it is made with Telekinesis or in
+the transformed form, and its Perks and Flaws, chosen as the traits
+are, with how many times (for one that can be taken more than once)
+and a cost (for one whose cost you choose: Cancel, Requirement,
+Unique). Its ROLL, DX and END follow each change. **OK** keeps it;
+**Cancel** puts it back as it was, and takes out an attack just added.
+**Remove** deletes the row's attack.
+
+Below the attacks are DEFENSE, HEALTH, ENDURANCE and TV, with
+Barrier's and Incorporeal Form's alternate DEFENSE and an Endurance
+Reserve when the character has them.
+
 ### The Background tab
 
-The Summary; the Background, Appearance, Personality and Other Notes;
-the Character Portrait, an image chosen with **Choose...** (its path
+The Summary, and the Background, Appearance, Personality, Character
+Hooks and Other Notes.
+
+### The Fluff tab
+
+The Character Portrait, an image chosen with **Choose...** (its path
 is saved relative to the character's file, and **Remove** takes it
 off); the sheet's fluff (Concept, Age, Birthday and the rest); and the
 notes, each a header and text, added, changed and removed as the

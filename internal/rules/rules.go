@@ -65,11 +65,15 @@ const (
 	CostUp                     // raises one Ability's Endurance cost: Endurance Use (p. 70)
 	OwnCost                    // spends Endurance of its own as it is used, so a spell of it
 	//                            costs more than the table's, "10+": Barrier (p. 51, 58)
+	CastsWeaknesses // its spells cast Weaknesses, -1 to -3, at Arcane's costs: Witchcraft (p. 58)
+	ThirdDefense    // another alternate Defense Roll, 2 + its level, written after
+	//                 Barrier's: Incorporeal Form, its dice as the Defense Roll (p. 55)
 )
 
-// What a Perk or Flaw does to an attack's numbers.
+// What a Perk or Flaw does to an attack's numbers, after the Abilities'
+// and Weaknesses' flags, with room for more of those.
 const (
-	RollEach       Flag = 20 + iota // +1 die a time (Accurate), or -1 (Inaccurate)
+	RollEach       Flag = 24 + iota // +1 die a time (Accurate), or -1 (Inaccurate)
 	DamageEach                      // +1 DX a time (Effective), or -1 (Ineffective)
 	RangedAttack                    // drops Strong and Weak (Ranged, p. 85)
 	StrengthRanged                  // keeps them (Ranged, Strength-Powered, p. 86)
@@ -123,6 +127,10 @@ const (
 	HealthEndurancePage = 107
 	ThreatValuePage     = 124
 	HalfCostPage        = 57 // Knowledge, half cost
+	// Where the NPC types, Heroic, Secondary and Extra (ova_fmt's
+	// npc-type:), are described: their Health and Endurance; TV's step
+	// for them is on p. 124.
+	NpcTypesPage = 123
 )
 
 // Item is an Ability, Weakness, Perk or Flaw. Read-only after init.
@@ -220,7 +228,7 @@ func init() {
 	a("Healer", 54, HalfTV)
 	a("Heightened Sense", 54)
 	a("Illusionist", 54)
-	a("Incorporeal Form", 55)
+	a("Incorporeal Form", 55, ThirdDefense)
 	a("Intimidating", 55)
 	a("Intuitive", 56)
 	a("Inventor", 56)
@@ -230,7 +238,7 @@ func init() {
 	a("Life Support", 57)
 	a("Lucky", 57)
 	l("Magic, Arcane", 57, Spells, HalfTV)
-	l("Magic, Witchcraft", 58, Spells, HalfTV)
+	l("Magic, Witchcraft", 58, Spells, HalfTV, CastsWeaknesses)
 	a("Minions", 58, NoTV)
 	a("Passion", 59)
 	a("Perceptive", 59)
@@ -437,6 +445,10 @@ func PageText(it *Item) string {
 // Label is "Attack (p. 50)": an item's name with its page, as every
 // name is shown.
 func Label(it *Item) string { return it.Name + " (" + PageText(it) + ")" }
+
+// PageLabel is "Secondary (p. 123)": a name that isn't one of the
+// items', with the page it is described on.
+func PageLabel(name string, page int) string { return name + " (p. " + strconv.Itoa(page) + ")" }
 
 // LabelOf is name's label, as written, if the tables have it: "Magic,
 // Testing (p. ?)" if they don't.

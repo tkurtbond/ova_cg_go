@@ -31,7 +31,8 @@ func named(list []*calc.Trait, name string) *character.Trait {
 }
 
 func partnerShown(d *LinkedDialog, p *character.Character) bool {
-	for i, n := range []*calc.Number{&p.Defense, &p.Barrier, &p.Health, &p.Endurance, &p.Reserve, &p.TV} {
+	for i, n := range []*calc.Number{&p.Defense, &p.Barrier, &p.Health, &p.Endurance, &p.Reserve, &p.TV,
+		&p.Incorporeal} {
 		if !d.Numbers[i].Shows(n) {
 			return false
 		}
@@ -115,7 +116,8 @@ func TestLinked(t *testing.T) {
 	check(t, p.Name == "Companion", "a blank name: Companion, since the file needs one")
 	d.Combat.SetChecked(true)
 	check(t, p.HasCombat && !d.AddAttack.Disabled() && d.Numbers[Health].Active() && !d.Numbers[Barrier].Active() &&
-		!d.Numbers[Reserve].Active(), "combat stats on: its attacks and numbers, Barrier's and Reserve's not, having none")
+		!d.Numbers[Reserve].Active() && !d.Numbers[partnerIncorporeal].Active(),
+		"combat stats on: its attacks and numbers, Barrier's, Incorporeal Form's and Reserve's not, having none")
 	before = p.Health.Value
 	d.Abilities.Pick("Tough")
 	d.Abilities.Add.OnTapped()
@@ -148,6 +150,8 @@ func TestLinked(t *testing.T) {
 		len(tr.Spells) == 6, "Spells...: Auren's six spells")
 	check(t, d.Spells.Line(0) == "Mana Shield\tBarrier +2 (p. 51)\tEND 10+",
 		"each with its Ability's page and its END: Barrier's 10+")
+	check(t, d.CastKind == rules.Ability && d.SpellKind.Text == "Ability" &&
+		d.SpellLevel.Min == 1 && d.SpellLevel.Max == 5, "Arcane's spells: Abilities, +1 to +5")
 	n := len(tr.Spells)
 	d.SpellName.SetText("Glow")
 	d.PickSpellAbility("Healer")
@@ -183,6 +187,34 @@ func TestLinked(t *testing.T) {
 	w.Abilities.Pick("Flight")
 	w.Abilities.Change.OnTapped()
 	check(t, tr.Spells == nil && !has("spells:"), "to Flight: the spells dropped")
+
+	// ---- Witchcraft's curses: Weaknesses (p. 58) ----
+	ok = load(w, "Cora.yaml")
+	c = w.Character
+	tr = named(c.Traits, "Magic, Witchcraft")
+	d = openLinked("Magic, Witchcraft")
+	check(t, ok && d.CastKind == rules.Weakness && d.SpellKind.Text == "Weakness" &&
+		d.SpellLevel.Min == -3 && d.SpellLevel.Max == -1 && d.SpellLevel.Value() == -1 && d.Spells.Count() == 0,
+		"Cora's Witchcraft: its spells are Weaknesses, -1 to -3, none yet")
+	d.SpellName.SetText("Hex")
+	d.PickSpellAbility("Frail")
+	check(t, d.SpellHelp.Page == 71, "the Weakness chosen: ? at its page, Frail's 71")
+	d.SpellLevel.SetValue(-2)
+	d.AddSpell.OnTapped()
+	check(t, len(tr.Spells) == 1 && d.Spells.Line(0) == "Hex\tFrail -2 (p. 71)\tEND 20",
+		"Add: Frail -2, its END by Witchcraft +2 and its size 2: 20")
+	check(t, has("ability: Frail") && has("level: -2"), "saved")
+	f.tells = 0
+	d.SpellName.SetText(" ")
+	d.AddSpell.OnTapped()
+	check(t, f.tells == 1 && f.told == "A curse needs a name and the Weakness it casts." && len(tr.Spells) == 1,
+		"a curse with no name: said so, not added")
+	d.Close.OnTapped()
+	d = openLinked("Magic, Witchcraft")
+	d.Spells.Select(0)
+	check(t, d.SpellName.Text == "Hex" && d.SpellAbility.SelectedIndex() == rules.Index(rules.Find("Frail")) &&
+		d.SpellLevel.Value() == -2, "opened again and selected: its name, Weakness and level")
+	d.Close.OnTapped()
 
 	// ---- A new Companion, and a Vehicle ----
 	w.NewItem.Action()

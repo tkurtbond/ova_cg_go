@@ -17,6 +17,7 @@ import (
 
 	"github.com/tkurtbond/go_ova_cg/internal/calc"
 	"github.com/tkurtbond/go_ova_cg/internal/character"
+	"github.com/tkurtbond/go_ova_cg/internal/entities"
 	"github.com/tkurtbond/go_ova_cg/internal/rules"
 	"github.com/tkurtbond/go_ova_cg/internal/save"
 )
@@ -62,7 +63,7 @@ func newWindow(t *testing.T) (*Window, *fakes) {
 func allShown(w *Window) bool {
 	c := w.Character
 	for i, n := range []*calc.Number{&c.Defense, &c.Barrier, &c.Health, &c.Endurance, &c.Reserve, &c.TV,
-		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points} {
+		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points, &c.Incorporeal} {
 		if !w.Numbers[i].Shows(n) {
 			return false
 		}
@@ -84,6 +85,26 @@ func choiceLabelled(p *Panel) bool {
 		}
 	}
 	return len(p.Choice.Options) == rules.Count(p.Kind)
+}
+
+// holds says whether o is in the tree of objects under root.
+func holds(root, o fyne.CanvasObject) bool {
+	if root == o {
+		return true
+	}
+	var children []fyne.CanvasObject
+	switch x := root.(type) {
+	case *fyne.Container:
+		children = x.Objects
+	case fyne.Widget:
+		children = test.WidgetRenderer(x).Objects()
+	}
+	for _, k := range children {
+		if holds(k, o) {
+			return true
+		}
+	}
+	return false
 }
 
 func traitNamed(w *Window, name string) *character.Trait {
@@ -117,6 +138,14 @@ func TestWindow(t *testing.T) {
 		file.Items[3] == w.SaveAsItem && w.Menu.Items[2].Items[0] == w.RulebookItem,
 		"and New, Open, Save, Save As, and Rulebook > Open")
 	check(t, w.Tabs.Selected() == w.SheetTab, "the Character tab is shown first")
+	check(t, w.Win.Canvas().Size().Width == Width && Width == 640 && w.Win.Content().MinSize().Width <= Width &&
+		len(w.Tabs.Items) == 4 &&
+		w.Tabs.Items[0] == w.SheetTab && w.Tabs.Items[1] == w.AttacksTab &&
+		w.Tabs.Items[2] == w.BackgroundTab && w.Tabs.Items[3] == w.FluffTab,
+		"640 wide, beside the viewer: Character, Attacks, Background and Fluff, in that order")
+	check(t, holds(w.AttacksTab.Content, w.AddAttack) && !holds(w.SheetTab.Content, w.AddAttack) &&
+		holds(w.FluffTab.Content, w.Background.Portrait) && !holds(w.BackgroundTab.Content, w.Background.Portrait),
+		"the attacks on the Attacks tab, the portrait on the Fluff tab")
 	check(t, choiceLabelled(w.Abilities.Panel) && choiceLabelled(w.Weaknesses.Panel),
 		"every name in the Selects has its page: Attack (p. 50)")
 	w.RulebookItem.Action()
@@ -130,8 +159,9 @@ func TestWindow(t *testing.T) {
 	check(t, w.Abilities.ListShown() && w.Weaknesses.ListShown(),
 		"every Ability and Weakness is listed with its page")
 	check(t, allShown(w), "every number shown is the model's")
-	check(t, w.Numbers[Barrier].Visible() && !w.Numbers[Reserve].Visible() && !w.Numbers[Points].Visible(),
-		"Barrier DEFENSE shown, for Barrier; the Reserve and the Scaled Cost points not")
+	check(t, w.Numbers[Barrier].Visible() && !w.Numbers[Reserve].Visible() && !w.Numbers[Points].Visible() &&
+		!w.Numbers[Incorporeal].Visible(),
+		"Barrier DEFENSE shown, for Barrier; the Reserve, the Scaled Cost points and Incorporeal DEFENSE not")
 	check(t, len(w.Rows) == 2, "a row in the combat box for each attack")
 	r := w.Rows[0]
 	check(t, r.Name.Text == "Telekinetic Push", "the first is Telekinetic Push")
@@ -189,6 +219,11 @@ func TestWindow(t *testing.T) {
 		"an unknown name: listed with p. ?")
 	i = w.Warnings.Find("Magic, Testing")
 	check(t, w.Warnings.Line(i) == "Magic, Testing (p. ?) isn't in the rulebook's lists", "and a warning, with p. ?")
+
+	f.tells = 0
+	ok = load(w, "Wisp.yaml")
+	check(t, ok && f.tells == 0 && w.Numbers[Incorporeal].Visible() && !w.Numbers[Barrier].Visible() && allShown(w),
+		"Wisp.yaml: Incorporeal DEFENSE shown, its 6, and Barrier DEFENSE not")
 
 	// ---- Abilities and Weaknesses ----
 	load(w, "Ai.yaml")
@@ -310,6 +345,21 @@ func TestWindow(t *testing.T) {
 	check(t, strings.Contains(saved(w), "player: Sam") && strings.Contains(saved(w), "Down to 10 HEALTH."),
 		"the player and Combat Notes saved")
 
+	// ---- The NPC type (p. 123-124) ----
+	c = w.Character
+	check(t, w.NpcTypeIn.SelectedIndex() == 0 && w.NpcTypeIn.Options[0] == "none" &&
+		w.NpcTypeIn.Options[2] == "Secondary (p. 123)", "the NPC type: none, each type with its page")
+	w.NpcTypeIn.SetSelectedIndex(1 + int(entities.Secondary))
+	check(t, c.HasNpcType && c.NpcType == entities.Secondary && c.Kind == calc.CompanionSheet &&
+		c.Health.Get() < 40 && allShown(w) && strings.Contains(saved(w), "npc-type: Secondary"),
+		"Secondary chosen: a Companion's sheet, shown, and saved")
+	w.NpcTypeIn.SetSelectedIndex(1 + int(entities.Extra))
+	check(t, c.Kind == calc.ExtraSheet && c.TV.Get() == 1 && allShown(w) && strings.Contains(saved(w), "npc-type: Extra"),
+		"Extra chosen: TV 1")
+	w.NpcTypeIn.SetSelectedIndex(0)
+	check(t, !c.HasNpcType && c.Kind == calc.Character && allShown(w) && !strings.Contains(saved(w), "npc-type"),
+		"none chosen: a character's sheet, no npc-type saved")
+
 	// ---- Files ----
 	f.chosen = objDir + "window.yaml"
 	w.SaveAsItem.Action()
@@ -334,6 +384,12 @@ func TestWindow(t *testing.T) {
 	f.answer = Discard
 	w.QuitItem.Action()
 	check(t, f.asked == 3 && w.Closed, "Don't save: the window goes, which ends the program")
+
+	// ---- A Sample NPC loaded ----
+	f.tells = 0
+	ok = load(w, "Jiro.yaml")
+	check(t, ok && f.tells == 0 && w.NpcTypeIn.SelectedIndex() == 1+int(entities.Secondary) && allShown(w),
+		"Jiro.yaml: his type shown, and his numbers the rules' for it, so nothing to say")
 }
 
 // The window's close button runs Quit, the close intercept, which Fyne's
