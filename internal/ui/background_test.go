@@ -1,6 +1,6 @@
 package ui
 
-// po_ova_cg's TestBackground: the second tab, driven as a user would,
+// ova_cg_po's TestBackground: the second tab, driven as a user would,
 // and what it saves. The text, the fluff, the notes and the portrait
 // shown from a character, each change made as the user makes it, and
 // checked in the model, in the window's title, and in what is saved.
@@ -15,8 +15,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/paths"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/paths"
 )
 
 const (

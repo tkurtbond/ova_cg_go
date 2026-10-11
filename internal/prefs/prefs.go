@@ -1,9 +1,9 @@
 // Package prefs keeps what the user chose between runs: the rulebook's
 // path and the viewer.
 //
-// PLAN.md, "prefs": the part of FLTK's Fl_Preferences po_ova_cg used. A
+// PLAN.md, "prefs": the part of FLTK's Fl_Preferences ova_cg_po used. A
 // small file of "name=value" lines, at
-// $XDG_CONFIG_HOME/ova_cg/ova_cg.prefs (else ~/.config/...), written
+// $XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs (else ~/.config/...), written
 // whole, through NAME.tmp and a rename, each time a value is set. In a
 // value, "\" is "\\" and a line feed "\n"; a line that isn't a
 // "name=value" is ignored.
@@ -24,13 +24,13 @@ type Prefs struct {
 }
 
 // DefaultPath is the preferences' file: $XDG_CONFIG_HOME (else
-// ~/.config), then ova_cg/ova_cg.prefs.
+// ~/.config), then ova_cg_go/ova_cg_go.prefs.
 func DefaultPath() string {
 	dir := os.Getenv("XDG_CONFIG_HOME")
 	if dir == "" {
 		dir = filepath.Join(os.Getenv("HOME"), ".config")
 	}
-	return filepath.Join(dir, "ova_cg", "ova_cg.prefs")
+	return filepath.Join(dir, "ova_cg_go", "ova_cg_go.prefs")
 }
 
 var (

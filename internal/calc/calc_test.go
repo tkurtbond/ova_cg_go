@@ -1,6 +1,6 @@
 package calc
 
-// The hand-made cases of po_ova_cg's TestCalc: a case for each Perk and
+// The hand-made cases of ova_cg_po's TestCalc: a case for each Perk and
 // Flaw that changes ROLL or DX, the floor at 0, 1/2 DX, Endurance Use,
 // spells, Defense, Health and Endurance, TV, each limit and warning, and
 // overrides counting downstream. The sample characters, the oracle, are
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 type checker struct {

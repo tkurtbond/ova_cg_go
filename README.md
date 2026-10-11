@@ -1,18 +1,18 @@
-# ova_cg - an OVA character generator in Go, with Fyne
+# ova_cg_go - an OVA character generator in Go, with Fyne
 
-`ova_cg` builds a character for OVA, the Open Versatile Anime engine,
+`ova_cg_go` builds a character for OVA, the Open Versatile Anime engine,
 in a window laid out like the official character sheet: pick Abilities
 and Weaknesses by name and level, build attacks from Perks and Flaws,
 and it works out Endurance costs, ROLL, DX, Defense, Health, Endurance
 and Threat Value as you go. It holds no rules text: each name shows its
 rulebook page, and the program can open the rulebook's PDF at that page
 in your PDF viewer. Characters are saved as YAML that
-[po_ova_fmt](../../RPG/Tools/po_ova_fmt) and the Ada ova_fmt format.
+[ova_fmt_po](../../RPG/Tools/ova_fmt_po) and the Ada ova_fmt format.
 
-It is a port of po_ova_cg (`~/Repos/RPG/Tools/po_ova_cg`, Oberon-2
+It is a port of ova_cg_po (`~/Repos/RPG/Tools/ova_cg_po`, Oberon-2
 with FLTK) to Go, with [Fyne](https://fyne.io) v2 for the window and
 `go.yaml.in/yaml/v3` for YAML. The rules, the file format and the
-window's contents are po_ova_cg's; [PLAN.md](PLAN.md) says what the
+window's contents are ova_cg_po's; [PLAN.md](PLAN.md) says what the
 port changed and why.
 
 **Status: complete** (the ten phases of PLAN.md). It covers what the
@@ -25,7 +25,7 @@ the sheet's other half, the background, portrait, fluff and notes.
 ## Usage
 
 ```
-ova_cg [options] [file.yaml]
+ova_cg_go [options] [file.yaml]
 ```
 
 `-h` lists the options: `-r`/`--rulebook PATH` gives the rulebook's PDF
@@ -34,7 +34,7 @@ PDF..., else `~/Reference/RPG/OVA/`), and `-v`/`--viewer` the viewer
 (`okular`, `evince`, `mupdf`, `xdg-open`, or a command with `%f` for
 the PDF, `%p` its page and `%l` the printed page), else the one chosen
 with Rulebook > Viewer.... Those two choices are kept in
-`$XDG_CONFIG_HOME/ova_cg/ova_cg.prefs` (else under `~/.config`). A file
+`$XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs` (else under `~/.config`). A file
 that can't be read, or holds mistakes, is reported and the program
 exits with status 1; a mistake on the command line exits with status 2.
 The program needs a display (`DISPLAY` or `WAYLAND_DISPLAY`); without
@@ -196,8 +196,8 @@ You need:
 - For a native Wayland build (`make TAGS=wayland`): the Wayland and
   xkbcommon development headers. Otherwise the program runs on Wayland
   through XWayland.
-- For `make test`: po_ova_fmt, built, at `PO_OVA_FMT` (default
-  `~/Repos/RPG/Tools/po_ova_fmt/po_ova_fmt`): what the generator saves
+- For `make test`: ova_fmt_po, built, at `OVA_FMT_PO` (default
+  `~/Repos/RPG/Tools/ova_fmt_po/ova_fmt_po`): what the generator saves
   must format as the file it loaded.
 - For `make test-headless`: Xvfb (`xvfb-run`) and `xdotool`; for
   `make test-sway`, sway.
@@ -207,7 +207,7 @@ You need:
   `RULEBOOK`.
 
 ```sh
-make                 # ./ova_cg
+make                 # ./ova_cg_go
 make test            # go test ./..., test/files.sh, test/cli.sh: no display needed
 make check           # go vet and go test -race
 make test-headless   # the program itself, on Xvfb
@@ -221,7 +221,7 @@ make clean
 
 ## Documents
 
-- [PLAN.md](PLAN.md): how the port maps po_ova_cg to Go and Fyne, what
+- [PLAN.md](PLAN.md): how the port maps ova_cg_po to Go and Fyne, what
   it decided differently, and what it found.
 - [AGENTS.md](AGENTS.md): working notes on the build and the tests.
-- po_ova_cg's PLAN.md: the design, and the rules the program computes.
+- ova_cg_po's PLAN.md: the design, and the rules the program computes.

@@ -1,6 +1,6 @@
 package paths
 
-// po_ova_cg's TestPaths. Paths are text alone here, so these need no
+// ova_cg_po's TestPaths. Paths are text alone here, so these need no
 // files.
 
 import (

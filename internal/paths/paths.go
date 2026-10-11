@@ -1,14 +1,14 @@
 // Package paths does file paths: made absolute, a file's directory, and
 // one path relative to a directory.
 //
-// po_ova_cg's PLAN.md, "The second tab": a character's portrait is saved
+// ova_cg_po's PLAN.md, "The second tab": a character's portrait is saved
 // as a path relative to its YAML file (Changes to ova_fmt, portrait), so
 // the window finds the image from the file's directory, and Save As to
 // another directory rebases the path. Paths here are text alone: no
 // file is looked at, and symbolic links aren't followed, so "a/../b" is
 // "b" even where a is a link. A path is "/"-separated; "" is none.
 //
-// The port of po_ova_cg's OvaPaths.
+// The port of ova_cg_po's OvaPaths.
 package paths
 
 import (

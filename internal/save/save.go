@@ -1,6 +1,6 @@
 // Package save writes a character as YAML in ova_fmt's format.
 //
-// po_ova_cg's PLAN.md, "Files". The document is built as yaml.v3 nodes,
+// ova_cg_po's PLAN.md, "Files". The document is built as yaml.v3 nodes,
 // never written as text here, so the quoting is the emitter's: text is
 // tagged !!str, so the emitter quotes it wherever plain YAML would read
 // it as something else (#1 fan, true, 10). Text of more than one line
@@ -15,7 +15,7 @@
 // A failed save leaves the old file as it was: the document goes to
 // NAME.tmp, which then replaces NAME.
 //
-// The port of po_ova_cg's OvaSave.
+// The port of ova_cg_po's OvaSave.
 package save
 
 import (
@@ -26,10 +26,10 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // ---- Scalars ----

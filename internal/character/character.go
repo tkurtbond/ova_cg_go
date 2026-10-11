@@ -1,22 +1,22 @@
 // Package character is the character being built: calc's sheet, with
 // its names and text.
 //
-// po_ova_cg's PLAN.md, "Files" and "Modules". A Character embeds a
+// ova_cg_po's PLAN.md, "Files" and "Modules". A Character embeds a
 // calc.Sheet, and its Traits, Mods, Attacks and Spells embed calc's,
 // with what calc doesn't need: names, details, notes, descriptions, the
 // background and the fluff, and the flags saying which optional keys a
 // file had, so that a file loaded and saved formats the same in ova_fmt.
 // Each calc record's Owner is the record that embeds it.
 //
-// A file is read by package entities, po_ova_fmt's loader, so the
-// generator reads exactly what po_ova_fmt reads, and then built into a
+// A file is read by package entities, ova_fmt_po's loader, so the
+// generator reads exactly what ova_fmt_po reads, and then built into a
 // Character. A number the file's overrides: key lists is an override.
 // Every other number the file holds is compared with the one calc
 // computes; one that differs is kept as an override too, with a notice
 // saying so: the file is the user's (a GM's ruling, a hand edit, or a
 // case the rules here don't cover), and nothing in it is lost.
 //
-// The port of po_ova_cg's OvaCharacter. Imports nothing of the window,
+// The port of ova_cg_po's OvaCharacter. Imports nothing of the window,
 // so its tests need no display.
 package character
 
@@ -31,10 +31,10 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
-	"github.com/tkurtbond/go_ova_cg/internal/spawn"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/spawn"
 )
 
 // NFluff is how many fluff fields there are.
@@ -162,7 +162,7 @@ func names(name string, hasDetail bool, detail, target string) bool {
 }
 
 // linkList ties each Endurance Use in list to the Ability in list, or
-// else the attack of s, that its detail names (po_ova_cg's PLAN.md,
+// else the attack of s, that its detail names (ova_cg_po's PLAN.md,
 // "Changes to ova_fmt": it needs no key of its own), setting their Use;
 // one naming nothing ties to nothing.
 func linkList(list []*calc.Trait, s *calc.Sheet) {
@@ -563,7 +563,7 @@ func openError(path string, err error) error {
 }
 
 // ReadEntities reads every entity of the file at path, of every
-// document in it, in order, as po_ova_fmt reads them. An error if it
+// document in it, in order, as ova_fmt_po reads them. An error if it
 // can't be read, or entities finds a problem in any of them.
 func ReadEntities(path string) ([]*entities.Entity, error) {
 	f, err := os.Open(path)

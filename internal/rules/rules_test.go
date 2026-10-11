@@ -6,7 +6,7 @@ import "testing"
 // headings, from which the pages were taken: every name on it must be
 // here, of the same kind, at the same place in the book's order, with
 // the cost it gives. Its entries were generated from the PDF's text of
-// p. 90 (po_ova_cg's PLAN.md, Phase 1), not typed.
+// p. 90 (ova_cg_po's PLAN.md, Phase 1), not typed.
 var quickList = []struct {
 	kind     Kind
 	name     string

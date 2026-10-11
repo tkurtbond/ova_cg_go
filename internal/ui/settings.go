@@ -1,9 +1,9 @@
 package ui
 
 // Character > Limits...: the rules that limit a character, saved in its
-// options (po_ova_cg's OvaSettings).
+// options (ova_cg_po's OvaSettings).
 //
-// po_ova_cg's PLAN.md, "Limiting the character (p. 21)": Base Zero, a
+// ova_cg_po's PLAN.md, "Limiting the character (p. 21)": Base Zero, a
 // Power Ceiling, starting levels, Scaled Cost, Knowledge and Ineptitude
 // at half cost, Combined Effectiveness, each turned on here and saved in
 // the character's options: block. calc applies them; this dialog only
@@ -25,9 +25,9 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 const (

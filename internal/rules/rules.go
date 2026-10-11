@@ -11,10 +11,10 @@
 // Pages are the book's printed numbers, which are also the PDF's page
 // labels; the PDF's page index is the printed page + PdfPageOffset. The
 // pages were checked against the PDF by the font of the entries'
-// headings (tools/rulebook-headings.py, make check-pages), as po_ova_cg's
+// headings (tools/rulebook-headings.py, make check-pages), as ova_cg_po's
 // were (its PLAN.md, Phase 1).
 //
-// The port of po_ova_cg's OvaRules. Imports nothing of the window or the
+// The port of ova_cg_po's OvaRules. Imports nothing of the window or the
 // files, so its tests need no display.
 package rules
 
@@ -335,7 +335,7 @@ func init() {
 	w("Weak-Willed", 82, Will)
 
 	// Costs from the Quick List (p. 90) and the headings; how often each
-	// may be taken from its own text (po_ova_cg's PLAN.md, "Perk and
+	// may be taken from its own text (ova_cg_po's PLAN.md, "Perk and
 	// Flaw costs").
 	pf("Accurate", Perk, 83, 5, Unlimited, RollEach)
 	pf("Area Effect", Perk, 83, 10, Unlimited)

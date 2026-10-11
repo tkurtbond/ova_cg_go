@@ -1,9 +1,9 @@
 package ui
 
 // The attack dialog, and the Perks and Flaws editor of an Ability
-// (po_ova_cg's OvaAttackDialog).
+// (ova_cg_po's OvaAttackDialog).
 //
-// po_ova_cg's PLAN.md, "The window": an attack's name, description and
+// ova_cg_po's PLAN.md, "The window": an attack's name, description and
 // affinity, whether it is made with Telekinesis or in the transformed
 // form, its Perks and its Flaws, each a list with a name, a count (where
 // it can be taken more than once) and a cost (where the user chooses
@@ -26,9 +26,9 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // maxTimes is the count's bound for an item taken as often as wanted.

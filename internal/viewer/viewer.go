@@ -1,7 +1,7 @@
 // Package viewer is the rulebook viewer: finding the PDF, and turning a
 // viewer to a page.
 //
-// po_ova_cg's PLAN.md, "The rulebook viewer": reuse a viewer already
+// ova_cg_po's PLAN.md, "The rulebook viewer": reuse a viewer already
 // open, start one only when none is. okular is turned over D-Bus (gdbus)
 // when one shows the rulebook already, evince reuses its own window,
 // mupdf can't be reused, so the one this program started last is ended
@@ -13,7 +13,7 @@
 // The programs' names are variables, so the tests can put fakes in
 // their place.
 //
-// The port of po_ova_cg's OvaViewer.
+// The port of ova_cg_po's OvaViewer.
 package viewer
 
 import (
@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
-	"github.com/tkurtbond/go_ova_cg/internal/spawn"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/spawn"
 )
 
 // Kind is a kind of viewer.
@@ -238,7 +238,7 @@ func (v Viewer) Command(pdf string, page int) []string {
 // "%", "#", "?" and control characters percent-encoded: okular compares
 // the URL with its tabs' as given, and its tab opened from a plain path
 // has "'" not "%27", so a URL encoded more than this opens the PDF again
-// in a new tab (po_ova_cg's PLAN.md, "Findings").
+// in a new tab (ova_cg_po's PLAN.md, "Findings").
 func FileUrl(pdf string) string {
 	var b strings.Builder
 	b.WriteString("file://")

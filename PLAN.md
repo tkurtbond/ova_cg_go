@@ -1,6 +1,6 @@
-# PLAN.md - ova_cg, the OVA character generator, in Go with Fyne
+# PLAN.md - ova_cg_go, the OVA character generator, in Go with Fyne
 
-`ova_cg` is a port of `po_ova_cg` (`~/Repos/RPG/Tools/po_ova_cg`), an
+`ova_cg_go` is a port of `ova_cg_po` (`~/Repos/RPG/Tools/ova_cg_po`), an
 Oberon-2 program built with poc, FLTK (pofltk) and libfyaml
 (polibfyaml), to Go, with the Fyne GUI toolkit and a pure-Go YAML
 library. It builds a character for OVA, the Open Versatile Anime
@@ -11,11 +11,11 @@ Ability's Endurance cost and the sheet's ROLL, DX, Defense, Health,
 Endurance and TV as the character changes. It holds no rulebook text:
 every name shows its rulebook page, and **?** opens the rulebook's PDF
 at that page in the user's PDF viewer. It saves and loads YAML in
-ova_fmt's format, so po_ova_fmt and the Ada ova_fmt print what it makes.
+ova_fmt's format, so ova_fmt_po and the Ada ova_fmt print what it makes.
 
 **The port changes the language and the libraries, not the program.**
 The rules, the data tables, the file format, the window's contents and
-behaviour, and the tests' oracles are po_ova_cg's. Its `PLAN.md` is the
+behaviour, and the tests' oracles are ova_cg_po's. Its `PLAN.md` is the
 design document for all of that and is not repeated here: read its
 "Sources and findings", "The rules the program computes", "Limiting the
 character", "Data tables", "The window", "Files" and "The rulebook
@@ -27,10 +27,10 @@ differently and why, and the build order.
 
 | What | Where |
 |---|---|
-| The Oberon program (the specification) | `~/Repos/RPG/Tools/po_ova_cg/` (`src/*.Mod`, `PLAN.md`, `AGENTS.md`, `README.md`) |
-| Its tests (to port, check for check) | `~/Repos/RPG/Tools/po_ova_cg/test/` |
-| The fixtures (copied into `testdata/`) | `~/Repos/RPG/Tools/po_ova_cg/test/data/` (themselves the Ada ova_fmt's `test-data/`) |
-| The file oracle | po_ova_fmt, `~/Repos/RPG/Tools/po_ova_fmt/po_ova_fmt` |
+| The Oberon program (the specification) | `~/Repos/RPG/Tools/ova_cg_po/` (`src/*.Mod`, `PLAN.md`, `AGENTS.md`, `README.md`) |
+| Its tests (to port, check for check) | `~/Repos/RPG/Tools/ova_cg_po/test/` |
+| The fixtures (copied into `testdata/`) | `~/Repos/RPG/Tools/ova_cg_po/test/data/` (themselves the Ada ova_fmt's `test-data/`) |
+| The file oracle | ova_fmt_po, `~/Repos/RPG/Tools/ova_fmt_po/ova_fmt_po` |
 | Fyne | `fyne.io/fyne/v2` v2.8.1 (module cache: `~/go/pkg/mod/fyne.io/fyne/v2@v2.8.1`) |
 | YAML | `go.yaml.in/yaml/v3` v3.0.4 (the maintained fork of `gopkg.in/yaml.v3`) |
 | The rulebook and sheet | `~/Reference/RPG/OVA/` (see AGENTS.md: names and pages only) |
@@ -38,10 +38,10 @@ differently and why, and the build order.
 ## Layout
 
 ```
-go.mod                      module github.com/tkurtbond/go_ova_cg
-cmd/ova_cg/                 main: command line, file, display check, window
+go.mod                      module github.com/tkurtbond/ova_cg_go
+cmd/ova_cg_go/                 main: command line, file, display check, window
 cmd/listrules/              PAGE<TAB>NAME of every item, for make check-pages
-cmd/openpage/               test/viewer.sh's driver (po_ova_cg's OpenPage)
+cmd/openpage/               test/viewer.sh's driver (ova_cg_po's OpenPage)
 internal/rules/             OvaRules
 internal/calc/              OvaCalc
 internal/entities/          OvaEntities (and what of OvaText it needs)
@@ -61,7 +61,7 @@ tools/                      rulebook-headings.py (copied), with-sway.sh
 GNUmakefile                 make, make test, make test-headless, ...
 ```
 
-Only `internal/ui` and `cmd/ova_cg` import Fyne. `cmd/ova_cg` alone
+Only `internal/ui` and `cmd/ova_cg_go` import Fyne. `cmd/ova_cg_go` alone
 imports `fyne.io/fyne/v2/app` (the GLFW driver); `internal/ui` is
 written against the `fyne.App`/`fyne.Window` interfaces, so its tests
 run on Fyne's test driver (`fyne.io/fyne/v2/test`) with no display at
@@ -192,7 +192,7 @@ names stay package variables, so `TestViewer` runs on
 
 ### prefs (FlPreferences' part)
 
-A small `key=value` file, `$XDG_CONFIG_HOME/ova_cg/ova_cg.prefs` (else
+A small `key=value` file, `$XDG_CONFIG_HOME/ova_cg_go/ova_cg_go.prefs` (else
 `~/.config/...`), holding `rulebook` and `viewer`, written (through a
 `.tmp` and rename) only when one is chosen. Not Fyne's `Preferences`:
 those live under Fyne's own storage root, keyed by the application ID,
@@ -218,7 +218,7 @@ own file in a temporary directory.
 | modal `Fl.DoubleWindow` dialogs | `dialog.NewCustomWithoutButtons` on the main window, with their own OK/Cancel/Close buttons (modal, in-window); Escape is ours (`Window.Escape`, "Findings") |
 | `FlDialogs.Message`, `Choice`, `Input` | custom dialogs: one button, three buttons, an entry with OK and Cancel |
 | `NativeFileChooser` | `dialog.NewFileOpen` / `NewFileSave`, filtered by extension |
-| `FlImages` portrait, scaled | `canvas.Image`, `FillMode` contain, in a fixed 160 x 200 box (smaller than po_ova_cg's, so the Fluff tab fits 800 high) |
+| `FlImages` portrait, scaled | `canvas.Image`, `FillMode` contain, in a fixed 160 x 200 box (smaller than ova_cg_po's, so the Fluff tab fits 800 high) |
 | `FlLayout.Grid` of fluff | `container.NewGridWithColumns(4)` |
 | `FlLayout.Scroll` of attack rows | `container.NewVScroll` of a `VBox` of rows |
 | red text (`SetTextColor(Fl.Red)`) | `widget.Label` with `Importance = widget.DangerImportance` |
@@ -228,7 +228,7 @@ Absolute pixel positions become Fyne layouts (borders, grids, boxes):
 the same widgets in the same places relative to each other, one
 column to a tab.
 
-**Nothing in the window waits for the user**, as in po_ova_cg: a
+**Nothing in the window waits for the user**, as in ova_cg_po: a
 message, the save-first question, the file choosers, a line of text and
 the rulebook go through function fields of `ui.Window` (`Tell`, `Ask`,
 `ChoosePath`, `ChoosePdf`, `AskText`, `ChooseImage`, `OpenPage`), each
@@ -243,13 +243,13 @@ anything. While the window fills its widgets from the character
 
 ## Decisions the port makes
 
-- **The program is `ova_cg`**, its window "OVA Character Generator",
-  its preferences `~/.config/ova_cg/`. It is a separate program from
-  po_ova_cg; the two share the file format and nothing else.
+- **The program is `ova_cg_go`**, its window "OVA Character Generator",
+  its preferences `~/.config/ova_cg_go/`. It is a separate program from
+  ova_cg_po; the two share the file format and nothing else.
 - **Fyne main-menu shortcuts are tried before the focused widget**
   (`internal/driver/glfw/window.go`, `triggersShortcut`, v2.8.1), so,
   unlike FLTK, a text entry doesn't swallow Ctrl+E. The menu keeps
-  po_ova_cg's keys (Ctrl+N, O, S, Shift+S, Q, E, T), and never binds
+  ova_cg_po's keys (Ctrl+N, O, S, Shift+S, Q, E, T), and never binds
   Ctrl+A, C, V, X, Z or Y, which would take select-all, copy, paste,
   cut, undo and redo away from every entry. `test/quit.sh` checks
   Ctrl+E from Character Name on the real program.
@@ -259,16 +259,16 @@ anything. While the window fills its widgets from the character
   the X11 GLFW driver needs GLX, which Xvfb's Mesa provides).
 - **A display is X11 by default.** Fyne's GLFW driver is X11 unless
   built with `-tags wayland`; on a Wayland desktop it runs through
-  XWayland's `DISPLAY`. The display check is po_ova_cg's (neither
+  XWayland's `DISPLAY`. The display check is ova_cg_po's (neither
   `DISPLAY` nor `WAYLAND_DISPLAY` set: say so, with the tmux hint, exit
   1), and a `wayland` build is a make variable (`TAGS=wayland`).
 - **The YAML emitter's layout differs from libfyaml's** (indentation,
   `|-` for a block without a final line break). That is not part of
-  the format: the oracle is po_ova_fmt's output for the saved copy
-  against the fixture (`test/files.sh`), as in po_ova_cg, and a saved
+  the format: the oracle is ova_fmt_po's output for the saved copy
+  against the fixture (`test/files.sh`), as in ova_cg_po, and a saved
   copy must load with no notices and save the same bytes again.
 - **The characters' Select is beside the tabs, not the menus.**
-  po_ova_cg's Choice of a file's characters is at the right of its
+  ova_cg_po's Choice of a file's characters is at the right of its
   menu bar; Fyne's `MainMenu` holds menu items only. Over the tab bar's
   empty right end, in a `container.NewStack` with the tabs, it takes no
   height either; the four tabs and its 230 fit in 640 (a capture from
@@ -287,7 +287,7 @@ test-headless` for the program itself) and its entry here marked
 `[done]`, with what was found.
 
 0. **Skeleton.** [done] `go.mod`, `GNUmakefile`, `README.md`, `AGENTS.md`,
-   this plan; `testdata/` copied from po_ova_cg's `test/data/`;
+   this plan; `testdata/` copied from ova_cg_po's `test/data/`;
    `test/*.sh` and `tools/` copied and adapted.
 1. **rules.** [done] The tables; `rules_test.go` ports `TestRules` (every
    Quick List entry found, of its kind, in order, at its cost; the
@@ -296,12 +296,12 @@ test-headless` for the program itself) and its entry here marked
    samples, every number their files hold, the two rulings as
    overrides, and every hand-made case.
 3. **entities, character, save, paths.** [done] `entities` loads every
-   fixture as po_ova_fmt does (Broken's errors listed); `character_test`
+   fixture as ova_fmt_po does (Broken's errors listed); `character_test`
    ports `TestModel`; `save_test` ports `TestFiles` (each fixture loaded
    with its expected notices, saved into `obj/files/`, loaded again with
    none, saved the same; the refused files; a failed save; awkward
    text); `paths_test` ports `TestPaths`; `test/files.sh` compares every
-   saved copy with its fixture in all seven po_ova_fmt formats.
+   saved copy with its fixture in all seven ova_fmt_po formats.
 4. **spawn, viewer, prefs.** [done] `spawn_test` and `viewer_test` port
    `TestSpawn` and `TestViewer` on the fake viewer and fake gdbus;
    `cmd/openpage` and `test/viewer.sh` for `make test-viewers` (the
@@ -321,16 +321,16 @@ test-headless` for the program itself) and its entry here marked
 8. **ui: limits and preferences.** [done] The Limits dialog, the red totals,
    the Rulebook menu, the preferences; `limits_test` ports
    `TestLimits`.
-9. **The program.** [done] `cmd/ova_cg`: the command line (`-h`, `-r`/
+9. **The program.** [done] `cmd/ova_cg_go`: the command line (`-h`, `-r`/
    `--rulebook`, `-v`/`--viewer`, one file), the file loaded before the
    display is looked for, the display check; `test/cli.sh`;
    `test/quit.sh` on Xvfb; README's user guide.
 
-10. **The Sample NPCs** (po_ova_cg's Phase 10, and its Witchcraft
+10. **The Sample NPCs** (ova_cg_po's Phase 10, and its Witchcraft
    curses). [done]
    - `entities`: `npc-type` (`NpcType`, `NpcTypeName`, an unknown type
      an error) and `character-hooks`; the 30 NPC fixtures and the
-     re-synced ones copied from po_ova_cg's `test/data/`.
+     re-synced ones copied from ova_cg_po's `test/data/`.
    - `character.SetNpcType` sets the sheet's kind: Secondary
      `CompanionSheet`, Extra the new `calc.ExtraSheet` (10 and 10, TV
      1). `save` writes both, and no END of 0 unless overridden. The
@@ -340,10 +340,10 @@ test-headless` for the program itself) and its entry here marked
    - Witchcraft (`rules.CastsWeaknesses`): its spells cast Weaknesses at
      -3 to -1, costed by their size (`calc`), and the spell dialog lists
      Weaknesses (`LinkedDialog.CastKind`, `SpellKind`).
-   - Where the book's samples differ from the rules, and why: po_ova_cg's
+   - Where the book's samples differ from the rules, and why: ova_cg_po's
      `CHARACTER-DIFFERENCES.md`, which holds here too (`save_test`
      expects the same notices).
-11. **Up to three Defense values** (po_ova_cg's Phase 11). [done]
+11. **Up to three Defense values** (ova_cg_po's Phase 11). [done]
    - `entities`: `OvDefense2` (`barrier` still read as it) and
      `OvDefense3`; more than three values an error.
    - `rules.ThirdDefense` on Incorporeal Form; `calc`'s `Incorporeal`
@@ -355,13 +355,13 @@ test-headless` for the program itself) and its entry here marked
    - The window's and the linked dialog's Incorporeal DEFENSE box under
      Barrier's, the last number box (`Incorporeal`,
      `partnerIncorporeal`), shown or active only with Incorporeal Form.
-12. **A narrower window** (po_ova_cg's Phase 12): 640 wide, four tabs
+12. **A narrower window** (ova_cg_po's Phase 12): 640 wide, four tabs
    of one column, the `container.Split`s gone. The combat box and the
    numbers are the Attacks tab; the portrait, the fluff and the notes
    the Fluff tab (`Background.fluff`). [done]
 
    For 10-12, `calc_test`, `character_test` and `save_test` port
-   po_ova_cg's new checks (the NPC fixtures and their notices,
+   ova_cg_po's new checks (the NPC fixtures and their notices,
    Defenses, Wisp, END 0, `npc-type` saved), and the window tests its
    UI checks (the NPC type, Wisp's box, the tabs and the content's least
    width, Character Hooks, Cora's curse, the partner's box). Nine bugs
@@ -371,10 +371,10 @@ test-headless` for the program itself) and its entry here marked
    Abilities; the curse message; Character Hooks not edited) each
    failed them.
 
-13. **Several characters in a file** (po_ova_cg's Phase 13). [done]
+13. **Several characters in a file** (ova_cg_po's Phase 13). [done]
    - `character`: `ReadEntities`, `FromEntity`, `LoadAll`, `One`;
      `Load` keeps exactly one. `save`: `SaveAll`, `AllToText`, `Copy`.
-     `cmd/ova_cg` opens a file of any number.
+     `cmd/ova_cg_go` opens a file of any number.
    - The window: `Characters` and `Current`; `CharacterIn`, the Select
      beside the tabs ("Decisions the port makes"); Character > Add,
      Duplicate, Remove..., Move Up, Move Down, Next, Previous, each
@@ -394,27 +394,27 @@ once before trusting `internal/viewer` with okular, evince and mupdf.
 ## Testing
 
 - `make test` (no display): `go test ./...` (every package, the window
-  tests on Fyne's test driver), then `test/files.sh` (needs po_ova_fmt
-  at `PO_OVA_FMT`) and `test/cli.sh`.
+  tests on Fyne's test driver), then `test/files.sh` (needs ova_fmt_po
+  at `OVA_FMT_PO`) and `test/cli.sh`.
 - `make test-headless`: the program itself on Xvfb: still running after
   `RUNTIME` seconds, and `test/quit.sh` (Ctrl+E, Escape, Ctrl+Q).
 - `make test-viewers`: the real viewers (`test/viewer.sh`).
 - `make check-pages`: rules' pages against the PDF's headings.
 - `make check`: `go vet ./...` and `go test -race ./...`.
 - The oracle for calculations is the sample characters; the oracle for
-  files is po_ova_fmt.
+  files is ova_fmt_po.
 
 ## Findings
 
 What the port found out about Go, Fyne v2.8.1 and yaml.v3 that
-po_ova_cg's design didn't have to know.
+ova_cg_po's design didn't have to know.
 
 - **Fyne's save chooser creates the file before it answers.**
   `dialog.NewFileSave` opens the chosen file for writing
   (`internal/repository/file.go`, `os.Create`) and hands over a
   `URIWriteCloser`; the window takes only its path, closes it, and saves
   through `NAME.tmp` and a rename. So a Save As whose save then fails
-  leaves an empty file at the chosen name, which po_ova_cg's never did.
+  leaves an empty file at the chosen name, which ova_cg_po's never did.
   Accepted: the failure is said, and the old file, if any, is the
   chooser's to have emptied (it asks before overwriting).
 - **A `FileDialog` resized before `Show` panics**: its `MinSize` asks
@@ -424,7 +424,7 @@ po_ova_cg's design didn't have to know.
   As; `TestChoosers` now opens the real ones.
 - **yaml.v3 quotes text that reads as a number or boolean** once it is
   tagged `!!str` (`age: "15"`); libfyaml wrote `15`. The two load the
-  same, and po_ova_fmt prints them the same (`test/files.sh`).
+  same, and ova_fmt_po prints them the same (`test/files.sh`).
 - **Fyne's in-window dialogs have no Escape and no close button.** The
   window keeps a stack of the open dialogs' Escape actions
   (`Window.escapes`, pushed by `modal`, popped by the dialog's
@@ -435,7 +435,7 @@ po_ova_cg's design didn't have to know.
   entry of the attack or linked dialogs does nothing until the focus
   leaves it. The file choosers are Fyne's and keep their own keys.
 - **A Fyne dialog is not a window**, so `test/quit.sh` can't find
-  Limits with xdotool as po_ova_cg's did. It sees Limits open by its
+  Limits with xdotool as ova_cg_po's did. It sees Limits open by its
   letting go of Character Name's focus (an `x` typed then changes
   nothing; typed without Ctrl+E, the title gets its ` *`); Escape
   closing it is `TestEscape`.

@@ -1,6 +1,6 @@
 // Package calc computes the numbers on the sheet from the character.
 //
-// po_ova_cg's PLAN.md, "The rules the program computes" and "Limiting
+// ova_cg_po's PLAN.md, "The rules the program computes" and "Limiting
 // the character": each attack's ROLL, DX and END; the END of an Ability
 // with Perks and Flaws or Endurance Use, and of each spell; DEFENSE,
 // Barrier's and Incorporeal Form's alternate Defenses; HEALTH,
@@ -15,13 +15,13 @@
 // about a *Trait leads the window to the character's.
 //
 // Every computed number is a Number, which also holds the user's
-// override (po_ova_cg's PLAN.md, "Overriding a computed number").
+// override (ova_cg_po's PLAN.md, "Overriding a computed number").
 // Compute reads the overrides of the numbers others are computed from
 // (an attack's ROLL and DX, Defense, the totals) so that an override
 // counts downstream, and sets every computed value; the overrides it
 // leaves alone.
 //
-// The port of po_ova_cg's OvaCalc. Imports nothing of the window or the
+// The port of ova_cg_po's OvaCalc. Imports nothing of the window or the
 // files, so its tests need no display.
 package calc
 
@@ -29,7 +29,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // SheetKind says where Health and Endurance start, and TV's last step.
@@ -127,7 +127,7 @@ type Attack struct {
 	Use         int  // an Endurance Use tied to it, as a Trait's
 	Roll, DX    Number
 	End         Number
-	// What TV takes of it (po_ova_cg's PLAN.md, "The combat box"): its
+	// What TV takes of it (ova_cg_po's PLAN.md, "The combat box"): its
 	// ROLL and DX in effect, less what Accurate, Inaccurate, Effective
 	// and Ineffective add; 1/2 and No Damage count as 0. InTV is false
 	// for an attack made in a form the sheet isn't shown in.
@@ -270,7 +270,7 @@ func (n *Number) Parse(s string, allowHalf, allowPlus bool) bool {
 		neg = true
 		s = s[1:]
 	}
-	// At most six digits, as po_ova_cg's: no overflow, and nothing on
+	// At most six digits, as ova_cg_po's: no overflow, and nothing on
 	// the sheet is near a million.
 	if len(s) == 0 || len(s) > 6 {
 		return false

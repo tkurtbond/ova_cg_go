@@ -1,6 +1,6 @@
 package viewer
 
-// po_ova_cg's TestViewer, with fakes in the programs' places:
+// ova_cg_po's TestViewer, with fakes in the programs' places:
 // test/fake-viewer.sh for every viewer, recording its arguments in
 // obj/fake-viewer.log, and test/fake-gdbus.sh, answering from
 // obj/gdbus.scenario and logging its calls in obj/gdbus.log. Every fake
@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
-	"github.com/tkurtbond/go_ova_cg/internal/spawn"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/spawn"
 )
 
 const (

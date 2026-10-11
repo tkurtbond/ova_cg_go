@@ -1,6 +1,6 @@
 package character
 
-// The book's sample characters (po_ova_cg's TestCalc, Samples12), and
+// The book's sample characters (ova_cg_po's TestCalc, Samples12), and
 // the editing the window does (TestModel). TestModel's save and load
 // is in package save, which imports this one.
 
@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 const dataDir = "../../testdata/"

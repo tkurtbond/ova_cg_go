@@ -8,7 +8,7 @@
 # Wayland.
 #
 # Fyne draws its dialogs inside the window, so Limits is no window of
-# its own for xdotool to find (po_ova_cg's quit.sh looked for one). That
+# its own for xdotool to find (ova_cg_po's quit.sh looked for one). That
 # it opened is seen instead by what it does to the focus: it lets go of
 # Character Name, so an x typed then changes nothing. Escape closing it
 # is internal/ui's TestEscape.

@@ -1,8 +1,8 @@
 package save
 
-// po_ova_cg's TestFiles, and TestModel's save and load. Each fixture
+// ova_cg_po's TestFiles, and TestModel's save and load. Each fixture
 // holding one character is loaded, saved into ../../obj/files/ (for
-// test/files.sh, which formats both with po_ova_fmt and compares), and
+// test/files.sh, which formats both with ova_fmt_po and compares), and
 // loaded again: the second load must give the same YAML, and no
 // notices, since the copy's overrides: keys list every number kept as
 // an override. The notices are the numbers the first load kept as
@@ -17,10 +17,10 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 const (
@@ -65,12 +65,12 @@ func roundTrip(t *testing.T, name string, want int) {
 // TestFixtures: the samples' numbers are all the rules', given the keys
 // the fixtures carry, but the book's two rulings, which their
 // overrides: list. Sheet uses every key; Defenses and Wisp, the three
-// Defense values, and Incorporeal Form's alone. po_ova_fmt's own
+// Defense values, and Incorporeal Form's alone. ova_fmt_po's own
 // fixtures' numbers were never the rules', so they come back as
 // overrides. The Sample NPCs: a Secondary NPC's sheet is a Companion's
 // (npc-type:), so Dr. Tomori's and Jiro's numbers are the rules'; Nazo's
 // and Shadowman's single Defense is their best, as the book prints it,
-// but Nazo's TV is the book's own (po_ova_cg's CHARACTER-DIFFERENCES.md).
+// but Nazo's TV is the book's own (ova_cg_po's CHARACTER-DIFFERENCES.md).
 // Acacia and Zurkrieg hold more than one entity (TestSeveral); Acacia's
 // notice is its Lock Heaven's Door's END. The NPC Fragments have no
 // combat: block, so nothing to compare. Fragment and Options hold two
@@ -124,7 +124,7 @@ func names(cs []*character.Character) string {
 	return strings.Join(l, "|")
 }
 
-// TestSeveral: files of several characters (po_ova_cg's PLAN.md,
+// TestSeveral: files of several characters (ova_cg_po's PLAN.md,
 // "Several characters in a file"): every one loaded, in order, each its
 // notices, and saved in that order; Load still takes exactly one.
 func TestSeveral(t *testing.T) {
@@ -191,7 +191,7 @@ func savesAs(t *testing.T, name, want string) {
 	}
 }
 
-// TestDefenses: up to three Defense values (po_ova_cg's PLAN.md, Phase
+// TestDefenses: up to three Defense values (ova_cg_po's PLAN.md, Phase
 // 11): one where the rules give more is the best; two, the Defense and
 // the first alternate; an overridden alternate the character doesn't
 // have is saved where it is read back.
@@ -271,7 +271,7 @@ func TestAwkwardText(t *testing.T) {
 		t.Errorf("the tagline: %q", c2.Tagline)
 	}
 	// The file keeps the background's first blanks; entities trims it
-	// on loading, as po_ova_fmt and the Ada ova_fmt do.
+	// on loading, as ova_fmt_po and the Ada ova_fmt do.
 	b, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

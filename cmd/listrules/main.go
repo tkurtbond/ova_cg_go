@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 func main() {

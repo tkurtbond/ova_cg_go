@@ -1,9 +1,9 @@
-// Command ova_cg is an OVA character generator: a window that edits one
+// Command ova_cg_go is an OVA character generator: a window that edits one
 // character, kept in a YAML file.
 //
-//	ova_cg [options] [file.yaml]
+//	ova_cg_go [options] [file.yaml]
 //
-// The port of po_ova_cg's OvaCg.Mod. PLAN.md, "Starting": the command
+// The port of ova_cg_po's OvaCg.Mod. PLAN.md, "Starting": the command
 // line, then the file, then a display, then the window. A file that
 // can't be opened is said on standard error, status 1, before a display
 // is needed, as a mistake on the command line is (status 2). The program
@@ -18,20 +18,20 @@ import (
 
 	"fyne.io/fyne/v2/app"
 
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/prefs"
-	"github.com/tkurtbond/go_ova_cg/internal/ui"
-	"github.com/tkurtbond/go_ova_cg/internal/viewer"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/prefs"
+	"github.com/tkurtbond/ova_cg_go/internal/ui"
+	"github.com/tkurtbond/ova_cg_go/internal/viewer"
 )
 
 const (
-	program       = "ova_cg"
-	appID         = "io.github.tkurtbond.ova_cg"
+	program       = "ova_cg_go"
+	appID         = "io.github.tkurtbond.ova_cg_go"
 	failureStatus = 1
 	usageStatus   = 2
 )
 
-const usage = `ova_cg [options] [file.yaml]
+const usage = `ova_cg_go [options] [file.yaml]
 
   -h, --help
       Display this text.
@@ -156,7 +156,7 @@ func main() {
 	}
 	w.UsePrefs(prefs.Open(prefs.DefaultPath()))
 	w.Win.Show()
-	w.Win.Canvas().Focus(w.NameIn) // where po_ova_cg's cursor starts
+	w.Win.Canvas().Focus(w.NameIn) // where ova_cg_po's cursor starts
 	if cs != nil {
 		w.Adopt(cs, o.file, notices)
 	}

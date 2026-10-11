@@ -1,6 +1,6 @@
 package ui
 
-// po_ova_cg's TestLimits: Character > Limits..., and the rulebook and
+// ova_cg_po's TestLimits: Character > Limits..., and the rulebook and
 // viewer kept in the preferences (a file of this test's own, never the
 // user's).
 
@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/prefs"
-	"github.com/tkurtbond/go_ova_cg/internal/viewer"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/prefs"
+	"github.com/tkurtbond/ova_cg_go/internal/viewer"
 )
 
 // reds is which of the Abilities', the Total and the points are red:
@@ -157,7 +157,7 @@ func TestLimits(t *testing.T) {
 	d.CancelEdit()
 
 	// ---- The rulebook and the viewer, kept ----
-	path := filepath.Join(t.TempDir(), "ova_cg.prefs")
+	path := filepath.Join(t.TempDir(), "ova_cg_go.prefs")
 	w.UsePrefs(prefs.Open(path))
 	check(t, w.SavedRulebook == "", "no rulebook kept")
 	pdfAsks, pdfAnswer := 0, dataDir+"Sheet.yaml" // any file stands for the PDF

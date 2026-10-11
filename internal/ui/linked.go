@@ -1,9 +1,9 @@
 package ui
 
 // An Ability's linked content: a Transformation's form, a Magic's
-// spells, a Companion or Vehicle (po_ova_cg's OvaLinkedDialog).
+// spells, a Companion or Vehicle (ova_cg_po's OvaLinkedDialog).
 //
-// po_ova_cg's PLAN.md, "The window": an Ability with linked content has
+// ova_cg_po's PLAN.md, "The window": an Ability with linked content has
 // a button that opens this dialog, in one of three shapes
 // (rules.Item.Linked):
 //
@@ -33,9 +33,9 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // A partner's numbers, LinkedDialog.Numbers' indices: the first six of

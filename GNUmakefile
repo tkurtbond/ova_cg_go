@@ -1,5 +1,5 @@
-# ova_cg -- an OVA character generator in Go, with Fyne for its window
-# and yaml.v3 for its files: the port of po_ova_cg (Oberon-2, FLTK).
+# ova_cg_go -- an OVA character generator in Go, with Fyne for its window
+# and yaml.v3 for its files: the port of ova_cg_po (Oberon-2, FLTK).
 # See AGENTS.md and PLAN.md.
 #
 # go builds and caches everything itself; make only names the steps and
@@ -13,7 +13,7 @@ TAGS ?=
 GOFLAGS_TAGS := $(if $(TAGS),-tags '$(TAGS)')
 
 OBJ     := obj
-PROGRAM := ova_cg
+PROGRAM := ova_cg_go
 
 # Seconds a test may run before it counts as hung, and how long the
 # program must keep running to count as started (test-gui).
@@ -31,12 +31,12 @@ $(OBJ):
 
 # go decides what needs building, so this always asks it.
 $(PROGRAM):
-	$(GO) build $(GOFLAGS_TAGS) -o $@ ./cmd/ova_cg
+	$(GO) build $(GOFLAGS_TAGS) -o $@ ./cmd/ova_cg_go
 
-# po_ova_fmt, the oracle for files: what the generator saves must format
+# ova_fmt_po, the oracle for files: what the generator saves must format
 # as the file it loaded (test/files.sh, after internal/save's test has
 # written obj/files/).
-PO_OVA_FMT ?= $(HOME)/Repos/RPG/Tools/po_ova_fmt/po_ova_fmt
+OVA_FMT_PO ?= $(HOME)/Repos/RPG/Tools/ova_fmt_po/ova_fmt_po
 
 # What needs no display: the Go tests (the window's included: Fyne's
 # test driver opens nothing), test/files.sh, then test/cli.sh; fail at
@@ -44,7 +44,7 @@ PO_OVA_FMT ?= $(HOME)/Repos/RPG/Tools/po_ova_fmt/po_ova_fmt
 test: $(PROGRAM)
 	@status=0; \
 	echo "== go test"; $(GO) test $(GOFLAGS_TAGS) -count=1 -timeout $(TIMEOUT) ./... || status=1; \
-	echo "== files.sh"; test/files.sh $(PO_OVA_FMT) || status=1; \
+	echo "== files.sh"; test/files.sh $(OVA_FMT_PO) || status=1; \
 	echo "== cli.sh"; test/cli.sh ./$(PROGRAM) || status=1; \
 	exit $$status
 
@@ -108,7 +108,7 @@ test-sway:
 
 # ---- Installation ----
 #
-# To $(PREFIX)/bin, $HOME/local/bin by default, as po_ova_cg's. DESTDIR
+# To $(PREFIX)/bin, $HOME/local/bin by default, as ova_cg_po's. DESTDIR
 # is prepended, for staging.
 PREFIX ?= $(HOME)/local
 BINDIR ?= $(PREFIX)/bin

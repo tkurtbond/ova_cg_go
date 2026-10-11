@@ -1,6 +1,6 @@
 package ui
 
-// po_ova_cg's TestLinked: a Transformation's form, a Magic's spells, a
+// ova_cg_po's TestLinked: a Transformation's form, a Magic's spells, a
 // Companion's and a Vehicle's sheets. Each kind of linked content
 // opened from the window's button, as the user opens it; shown with
 // each name's page; edited, live, and checked in the model, in the
@@ -13,9 +13,9 @@ import (
 
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // click selects l's last line holding text, as a click does.

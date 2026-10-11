@@ -1,6 +1,6 @@
 // Package entities reads an OVA entity once from its YAML.
 //
-// The port of po_ova_fmt's OvaEntities (copied into po_ova_cg), itself
+// The port of ova_fmt_po's OvaEntities (copied into ova_cg_po), itself
 // the Ada Ova_Fmt.Entities: each entity (a character, or an NPC
 // Fragment) is decoded from its YAML mapping once, by Load, into plain
 // records. The Ada package's comments describe the schema and the
@@ -25,7 +25,7 @@
 // The YAML is read with go.yaml.in/yaml/v3 into nodes, but scalars are
 // converted with polibfyaml's grammar (parseInt, parseBool), and paths
 // are written in its ByPath syntax ("/1/abilities/2"), so this reads
-// exactly what po_ova_fmt reads, and says it the same way.
+// exactly what ova_fmt_po reads, and says it the same way.
 package entities
 
 import (

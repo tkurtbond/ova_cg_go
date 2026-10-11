@@ -1,6 +1,6 @@
 package spawn
 
-// po_ova_cg's TestSpawn. The viewer is test/fake-viewer.sh, which
+// ova_cg_po's TestSpawn. The viewer is test/fake-viewer.sh, which
 // records its arguments, parent, session, terminal and standard files
 // in obj/fake-viewer.log, then runs until ended: every one started here
 // is ended by its pid (Terminate), never by name. Its log is its own,

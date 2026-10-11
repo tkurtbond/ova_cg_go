@@ -1,6 +1,6 @@
 // Package ui is the program's window and its dialogs, in Fyne.
 //
-// po_ova_cg's PLAN.md, "The window". One window, narrow enough to sit
+// ova_cg_po's PLAN.md, "The window". One window, narrow enough to sit
 // beside the rulebook's viewer, a menu bar, and four tabs, each a
 // column: the first two the sheet's right half, "Character" (the names,
 // the NPC type, the Abilities and Weaknesses, the totals and warnings,
@@ -8,7 +8,7 @@
 // numbers), with a box beside every computed number for its override;
 // the other two the sheet's left half, "Background" and "Fluff".
 //
-// A file holds one character or several (po_ova_cg's PLAN.md, "Several
+// A file holds one character or several (ova_cg_po's PLAN.md, "Several
 // characters in a file"): Characters, in the file's order, of which one,
 // Character, is shown. The Select at the right of the tab bar, and the
 // Character menu, switch between them, add, copy, remove and reorder
@@ -27,7 +27,7 @@
 // The rulebook's path and the viewer the user chooses are kept in the
 // preferences (UsePrefs), between runs.
 //
-// The port of po_ova_cg's OvaWindow, OvaWidgets, OvaTraitPanel,
+// The port of ova_cg_po's OvaWindow, OvaWidgets, OvaTraitPanel,
 // OvaAttackDialog, OvaLinkedDialog, OvaSettings and OvaBackground.
 package ui
 
@@ -42,14 +42,14 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/paths"
-	"github.com/tkurtbond/go_ova_cg/internal/prefs"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
-	"github.com/tkurtbond/go_ova_cg/internal/save"
-	"github.com/tkurtbond/go_ova_cg/internal/viewer"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/paths"
+	"github.com/tkurtbond/ova_cg_go/internal/prefs"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/save"
+	"github.com/tkurtbond/ova_cg_go/internal/viewer"
 )
 
 // Title is the window's title, before the file's name.
@@ -876,7 +876,7 @@ func menuItem(label string, key fyne.KeyName, mods fyne.KeyModifier, action func
 	return it
 }
 
-// buildMenu is the menu bar. Its keys are po_ova_cg's, and none is
+// buildMenu is the menu bar. Its keys are ova_cg_po's, and none is
 // Ctrl+A, C, V, X, Z or Y, which the entries need (PLAN.md, "Decisions
 // the port makes").
 func (w *Window) buildMenu() {
@@ -1017,7 +1017,7 @@ func New(a fyne.App) *Window {
 	w.FluffTab = container.NewTabItem("Fluff", w.Background.fluff)
 	w.Tabs = container.NewAppTabs(w.SheetTab, w.AttacksTab, w.BackgroundTab, w.FluffTab)
 	// The characters' Select over the tab bar's empty right end: Fyne's
-	// main menu holds no widget, as po_ova_cg's menu bar does its Choice.
+	// main menu holds no widget, as ova_cg_po's menu bar does its Choice.
 	w.CharacterIn = widget.NewSelect(nil, func(string) { w.characterChosen() })
 	w.Win.SetContent(container.NewStack(w.Tabs,
 		container.NewVBox(container.NewHBox(layout.NewSpacer(), sized(w.CharacterIn, CharacterW, 0)))))

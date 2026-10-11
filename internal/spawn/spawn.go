@@ -1,14 +1,14 @@
 // Package spawn runs other programs: the rulebook's viewer and its
 // D-Bus queries.
 //
-// po_ova_cg's PLAN.md, "The rulebook viewer": a viewer is started
+// ova_cg_po's PLAN.md, "The rulebook viewer": a viewer is started
 // detached, in a session of its own, so a hangup of the program's
 // terminal doesn't end it, and a failed start comes back as an errno
 // instead of a shell's message on the terminal. Capture runs a program
 // and returns its standard output, for gdbus. A program is an argument
 // vector, run without a shell, so nothing needs quoting.
 //
-// The port of po_ova_cg's OvaSpawn, with os/exec in place of its C part
+// The port of ova_cg_po's OvaSpawn, with os/exec in place of its C part
 // (PLAN.md, "spawn"). Needs no display.
 package spawn
 

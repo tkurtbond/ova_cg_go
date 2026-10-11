@@ -8,7 +8,7 @@
 // program's ? buttons would: so a mupdf started for one page is ended
 // before the next. Prints each Open's message, and exits 1 if one fails.
 //
-// The port of po_ova_cg's test/OpenPage.Mod.
+// The port of ova_cg_po's test/OpenPage.Mod.
 package main
 
 import (
@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tkurtbond/go_ova_cg/internal/viewer"
+	"github.com/tkurtbond/ova_cg_go/internal/viewer"
 )
 
 const pause = 3 * time.Second

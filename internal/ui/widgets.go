@@ -1,9 +1,9 @@
 package ui
 
 // What the window and its dialogs share: the number boxes, the ?
-// buttons, a spinner, and the list editors (po_ova_cg's OvaWidgets).
+// buttons, a spinner, and the list editors (ova_cg_po's OvaWidgets).
 //
-// po_ova_cg's PLAN.md, "Overriding a computed number": beside every
+// ova_cg_po's PLAN.md, "Overriding a computed number": beside every
 // number the program computes is an empty entry box. A NumberBox is
 // both: the computed number, shown read-only, and the box, whose text is
 // the override in effect ("" for none). Where its number lives is its
@@ -32,8 +32,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // Row is a row's height: an entry's or a button's.

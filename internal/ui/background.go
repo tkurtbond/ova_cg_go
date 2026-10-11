@@ -1,9 +1,9 @@
 package ui
 
 // The window's last two tabs: the sheet's left half, the fluff, and the
-// notes (po_ova_cg's OvaBackground).
+// notes (ova_cg_po's OvaBackground).
 //
-// po_ova_cg's PLAN.md, "The window", the third and fourth tabs.
+// ova_cg_po's PLAN.md, "The window", the third and fourth tabs.
 // "Background": the Summary; Background, Appearance, Personality,
 // Character Hooks and Other Notes, each a multi-line entry. "Fluff": the
 // Character Portrait, an image file whose path is saved
@@ -33,9 +33,9 @@ import (
 	"fyne.io/fyne/v2/widget"
 	_ "golang.org/x/image/bmp" // portraits
 
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/paths"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/paths"
 )
 
 // The prose sections, Background.Prose's indices.

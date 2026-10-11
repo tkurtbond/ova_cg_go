@@ -1,9 +1,9 @@
 package ui
 
 // A list of Abilities or Weaknesses and its editor: a character's, a
-// form's, a partner's (po_ova_cg's OvaTraitPanel).
+// form's, a partner's (ova_cg_po's OvaTraitPanel).
 //
-// po_ova_cg's PLAN.md, "The window": the Abilities and the Weaknesses
+// ova_cg_po's PLAN.md, "The window": the Abilities and the Weaknesses
 // are each a list of lines ("+3 Attack (Kaze Satsujinsha)", and "p. 50"
 // at the right) with a Panel's controls. The same panel edits the
 // character's own (the window), a Transformation's form, and a
@@ -18,9 +18,9 @@ package ui
 import (
 	"strconv"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 )
 
 // TraitPanel is a list of Abilities or Weaknesses and its editor.

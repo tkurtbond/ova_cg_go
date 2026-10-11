@@ -10,7 +10,7 @@ import (
 )
 
 func TestPrefs(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "ova_cg", "ova_cg.prefs")
+	path := filepath.Join(t.TempDir(), "ova_cg_go", "ova_cg_go.prefs")
 	p := Open(path)
 	if p.Get("rulebook") != "" {
 		t.Error("no file: nothing kept")
@@ -47,12 +47,12 @@ func TestPrefs(t *testing.T) {
 
 func TestDefaultPath(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/x/config")
-	if DefaultPath() != "/x/config/ova_cg/ova_cg.prefs" {
+	if DefaultPath() != "/x/config/ova_cg_go/ova_cg_go.prefs" {
 		t.Error("under XDG_CONFIG_HOME")
 	}
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("HOME", "/home/u")
-	if DefaultPath() != "/home/u/.config/ova_cg/ova_cg.prefs" {
+	if DefaultPath() != "/home/u/.config/ova_cg_go/ova_cg_go.prefs" {
 		t.Error("else under ~/.config")
 	}
 }

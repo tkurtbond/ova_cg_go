@@ -1,6 +1,6 @@
 package ui
 
-// po_ova_cg's TestWindow: the first tab, driven as a user would, and
+// ova_cg_po's TestWindow: the first tab, driven as a user would, and
 // its files. Fyne's test driver draws in memory: no display is needed,
 // and nothing reaches the desktop. Widgets are driven directly: a
 // value set, then what the user's action does; a menu item's action
@@ -15,11 +15,11 @@ import (
 
 	"fyne.io/fyne/v2/test"
 
-	"github.com/tkurtbond/go_ova_cg/internal/calc"
-	"github.com/tkurtbond/go_ova_cg/internal/character"
-	"github.com/tkurtbond/go_ova_cg/internal/entities"
-	"github.com/tkurtbond/go_ova_cg/internal/rules"
-	"github.com/tkurtbond/go_ova_cg/internal/save"
+	"github.com/tkurtbond/ova_cg_go/internal/calc"
+	"github.com/tkurtbond/ova_cg_go/internal/character"
+	"github.com/tkurtbond/ova_cg_go/internal/entities"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
+	"github.com/tkurtbond/ova_cg_go/internal/save"
 )
 
 const (
@@ -480,7 +480,7 @@ func TestChoosers(t *testing.T) {
 	}
 }
 
-// testSeveral: several characters in a file (po_ova_cg's PLAN.md,
+// testSeveral: several characters in a file (ova_cg_po's PLAN.md,
 // "Several characters in a file").
 func testSeveral(t *testing.T, w *Window, f *fakes) {
 	title := func() string { return w.Win.Title() }
