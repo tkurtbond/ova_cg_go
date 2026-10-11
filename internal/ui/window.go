@@ -8,13 +8,20 @@
 // numbers), with a box beside every computed number for its override;
 // the other two the sheet's left half, "Background" and "Fluff".
 //
+// A file holds one character or several (po_ova_cg's PLAN.md, "Several
+// characters in a file"): Characters, in the file's order, of which one,
+// Character, is shown. The Select at the right of the tab bar, and the
+// Character menu, switch between them, add, copy, remove and reorder
+// them. Every change marks the file modified, and Save writes them all.
+//
 // The character is the Window's: every change a widget makes goes into
 // it, then character.Recompute, then the window shows it again, so no
 // widget holds the only copy of anything.
 //
 // What would wait for the user -- a message, a question, a file chooser,
 // a line of text, the rulebook's viewer -- goes through a function field
-// (Tell, Ask, ChoosePath, ChoosePdf, AskText, ChooseImage, OpenPage),
+// (Tell, Ask, Confirm, ChoosePath, ChoosePdf, AskText, ChooseImage,
+// OpenPage),
 // each taking a callback for its answer, so a test can answer it.
 //
 // The rulebook's path and the viewer the user chooses are kept in the
@@ -25,6 +32,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -47,10 +55,12 @@ import (
 // Title is the window's title, before the file's name.
 const Title = "OVA Character Generator"
 
-// The window's size: a column, to sit beside the PDF viewer.
+// The window's size: a column, to sit beside the PDF viewer; and the
+// characters' Select's width.
 const (
-	Width  = 640
-	Height = 800
+	Width      = 640
+	Height     = 800
+	CharacterW = 230
 )
 
 // The sheet's numbers, Window.Numbers' indices.
@@ -93,13 +103,17 @@ type Window struct {
 	App fyne.App
 	Win fyne.Window
 
-	Menu                                              *fyne.MainMenu
-	NewItem, OpenItem, SaveItem, SaveAsItem, QuitItem *fyne.MenuItem
-	LimitsItem, TransformedItem                       *fyne.MenuItem
-	RulebookItem, ChoosePdfItem, ViewerItem           *fyne.MenuItem
-	Tabs                                              *container.AppTabs
-	SheetTab, AttacksTab, BackgroundTab, FluffTab     *container.TabItem
-	NameIn, PlayerIn, TaglineIn                       *widget.Entry
+	Menu                                                 *fyne.MainMenu
+	NewItem, OpenItem, SaveItem, SaveAsItem, QuitItem    *fyne.MenuItem
+	LimitsItem, TransformedItem                          *fyne.MenuItem
+	AddCharacterItem, DuplicateItem, RemoveCharacterItem *fyne.MenuItem
+	MoveUpItem, MoveDownItem, NextItem, PreviousItem     *fyne.MenuItem
+	// The file's characters, by number and name; Current chosen.
+	CharacterIn                                   *widget.Select
+	RulebookItem, ChoosePdfItem, ViewerItem       *fyne.MenuItem
+	Tabs                                          *container.AppTabs
+	SheetTab, AttacksTab, BackgroundTab, FluffTab *container.TabItem
+	NameIn, PlayerIn, TaglineIn                   *widget.Entry
 	// The NPC type: item 0 none, then entities.Heroic, Secondary, Extra,
 	// each at its constant + 1.
 	NpcTypeIn             *widget.Select
@@ -118,11 +132,14 @@ type Window struct {
 	Linked                *LinkedDialog   // nil when closed
 	Settings              *SettingsDialog // nil when closed
 
-	// The character, the file it came from or was saved to ("": none),
-	// and whether it has changed since.
-	Character *character.Character
-	Path      string
-	Modified  bool
+	// The file's characters, in order, and the one shown,
+	// Characters[Current]; the file they came from or were saved to ("":
+	// none), and whether any has changed since.
+	Characters []*character.Character
+	Current    int
+	Character  *character.Character
+	Path       string
+	Modified   bool
 
 	// What would wait for the user; a test sets its own. Tell shows a
 	// message; Ask asks whether to save first; ChoosePath asks for a
@@ -130,8 +147,10 @@ type Window struct {
 	// the rulebook's PDF; AskText for a line of text, showing text as it
 	// is (ok false: cancelled); ChooseImage for a portrait; OpenPage
 	// opens the rulebook at a printed page.
-	Tell        func(text string)
-	Ask         func(question string, answer func(Answer))
+	Tell    func(text string)
+	Ask     func(question string, answer func(Answer))
+	Confirm func(question, yes string, then func(ok bool)) // yes names the button that does it
+
 	ChoosePath  func(save bool, then func(path string))
 	ChoosePdf   func(then func(path string))
 	AskText     func(prompt, text string, then func(text string, ok bool))
@@ -250,10 +269,16 @@ func (w *Window) chooseViewer() {
 
 // ---- Title and changes ----
 
+// fileName is the file's name, its path without its directory.
+func (w *Window) fileName() string { return w.Path[strings.LastIndexByte(w.Path, '/')+1:] }
+
 func (w *Window) showTitle() {
 	t := Title
 	if w.Path != "" {
-		t += " - " + w.Path[strings.LastIndexByte(w.Path, '/')+1:]
+		t += " - " + w.fileName()
+	}
+	if len(w.Characters) > 1 {
+		t += fmt.Sprintf(" (%d of %d)", w.Current+1, len(w.Characters))
 	}
 	if w.Modified {
 		t += " *"
@@ -506,6 +531,116 @@ func (w *Window) showRows() {
 	w.showNumbers()
 }
 
+// ---- The file's characters ----
+
+// characterLabel is character i's label in the Select: its number and
+// name.
+func (w *Window) characterLabel(i int) string {
+	name := w.Characters[i].Name
+	if name == "" {
+		name = "(no name)"
+	}
+	return fmt.Sprintf("%d. %s", i+1, name)
+}
+
+// showCharacters lists the characters in the Select again, Current
+// chosen, and the Character menu's items are active where they can do
+// something.
+func (w *Window) showCharacters() {
+	n := len(w.Characters)
+	l := make([]string, n)
+	for i := range l {
+		l[i] = w.characterLabel(i)
+	}
+	filling := w.filling
+	w.filling = true
+	w.CharacterIn.SetOptions(l)
+	w.CharacterIn.SetSelectedIndex(w.Current)
+	w.filling = filling
+	w.RemoveCharacterItem.Disabled = n <= 1
+	w.MoveUpItem.Disabled, w.PreviousItem.Disabled = w.Current == 0, w.Current == 0
+	w.MoveDownItem.Disabled, w.NextItem.Disabled = w.Current == n-1, w.Current == n-1
+	w.Menu.Refresh()
+}
+
+// showCharacter shows character i.
+func (w *Window) showCharacter(i int) {
+	w.Current, w.Character = i, w.Characters[i]
+	character.Recompute(w.Character)
+	w.showAll()
+}
+
+func (w *Window) characterChosen() {
+	if w.filling {
+		return
+	}
+	if i := w.CharacterIn.SelectedIndex(); i >= 0 && i != w.Current {
+		w.showCharacter(i)
+	}
+}
+
+// appendCharacter adds c after the last character, and shows it:
+// Character > Add Character's new one, or Duplicate's copy.
+func (w *Window) appendCharacter(c *character.Character) {
+	w.Characters = append(w.Characters, c)
+	w.Modified = true
+	w.showCharacter(len(w.Characters) - 1)
+}
+
+// duplicateCharacter is Character > Duplicate Character: a copy of the
+// one shown, last.
+func (w *Window) duplicateCharacter() {
+	if c := save.Copy(w.Character); c == nil {
+		w.tell("The character couldn't be copied.")
+	} else {
+		w.appendCharacter(c)
+	}
+}
+
+// removeCharacter is Character > Remove Character...: the one shown,
+// once the user says so; not the only one, since a file holds at least
+// one. The one after it is shown, or the one before if it was last.
+func (w *Window) removeCharacter() {
+	if len(w.Characters) <= 1 {
+		return
+	}
+	name := w.Character.Name
+	if name == "" {
+		name = "this character"
+	}
+	w.Confirm("Remove "+name+" from the file?", "Remove", func(ok bool) {
+		if !ok {
+			return
+		}
+		i := w.Current
+		w.Characters = append(w.Characters[:i:i], w.Characters[i+1:]...)
+		w.Modified = true
+		w.showCharacter(min(i, len(w.Characters)-1))
+	})
+}
+
+// moveCharacter swaps the character shown with the one d after it, and
+// it is still shown.
+func (w *Window) moveCharacter(d int) {
+	j := w.Current + d
+	if j < 0 || j >= len(w.Characters) {
+		return
+	}
+	w.Characters[w.Current], w.Characters[j] = w.Characters[j], w.Characters[w.Current]
+	w.Current = j
+	w.Modified = true
+	w.showCharacters()
+	w.showTitle()
+}
+
+// stepCharacter shows the character d after the one shown, if there is
+// one: Next and Previous, which don't wrap.
+func (w *Window) stepCharacter(d int) {
+	if j := w.Current + d; j >= 0 && j < len(w.Characters) {
+		w.showCharacter(j)
+	}
+}
+
 // ---- The NPC type ----
 
 // npcTypeLabels are the NPC type's choices: none, then each type with
@@ -593,23 +728,26 @@ func (w *Window) showAll() {
 		dir = paths.Dir(w.Path)
 	}
 	w.Background.Show(c, dir)
+	w.showCharacters()
 	w.showTitle()
 }
 
 // ---- Files ----
 
 // take shows c, from file p ("": none).
-func (w *Window) take(c *character.Character, p string) {
-	w.Character, w.Path, w.Modified = c, p, false
-	character.Recompute(c)
+// take shows the characters cs, from file p ("": none), the first of
+// them.
+func (w *Window) take(cs []*character.Character, p string) {
+	w.Characters, w.Current, w.Character, w.Path, w.Modified = cs, 0, cs[0], p, false
+	character.Recompute(w.Character)
 	w.showAll()
 }
 
 // Adopt shows c, just loaded by character.Load from the file at p, and
 // says what the file gives that the rules compute differently (each is
 // kept as an override): notices.
-func (w *Window) Adopt(c *character.Character, p string, notices []string) {
-	w.take(c, p)
+func (w *Window) Adopt(cs []*character.Character, p string, notices []string) {
+	w.take(cs, p)
 	if len(notices) > 0 {
 		w.tell("Numbers the file gives differently from the rules, kept as overrides:\n" +
 			strings.Join(notices, "\n"))
@@ -619,12 +757,12 @@ func (w *Window) Adopt(c *character.Character, p string, notices []string) {
 // Load opens the character in the file at p; false, said why, if it
 // can't.
 func (w *Window) Load(p string) bool {
-	c, notices, err := character.Load(p)
+	cs, notices, err := character.LoadAll(p)
 	if err != nil {
 		w.tell(err.Error())
 		return false
 	}
-	w.Adopt(c, p, notices)
+	w.Adopt(cs, p, notices)
 	return true
 }
 
@@ -632,16 +770,20 @@ func (w *Window) Load(p string) bool {
 // relative to the file, is rebased to p's directory first (paths), and
 // put back if the save fails.
 func (w *Window) saveTo(p string) bool {
-	c := w.Character
-	old := c.Portrait
+	old := make([]string, len(w.Characters))
 	from := ""
 	if w.Path != "" {
 		from = paths.Dir(w.Path)
 	}
 	to := paths.Dir(p)
-	c.Portrait = paths.Rebase(old, from, to)
-	if err := save.Save(c, p); err != nil {
-		c.Portrait = old
+	for i, c := range w.Characters {
+		old[i] = c.Portrait
+		c.Portrait = paths.Rebase(old[i], from, to)
+	}
+	if err := save.SaveAll(w.Characters, p); err != nil {
+		for i, c := range w.Characters {
+			c.Portrait = old[i]
+		}
 		w.tell(err.Error())
 		return false
 	}
@@ -672,8 +814,15 @@ func (w *Window) mayLeave(then func()) {
 		then()
 		return
 	}
-	name := w.Character.Name
-	if name == "" {
+	var name string
+	switch {
+	case w.Path != "":
+		name = w.fileName()
+	case len(w.Characters) > 1:
+		name = "the characters"
+	case w.Character.Name != "":
+		name = w.Character.Name
+	default:
 		name = "the character"
 	}
 	w.Ask("Save the changes to "+name+" first?", func(a Answer) {
@@ -690,7 +839,9 @@ func (w *Window) mayLeave(then func()) {
 	})
 }
 
-func (w *Window) newCharacter() { w.mayLeave(func() { w.take(character.New(), "") }) }
+func (w *Window) newCharacter() {
+	w.mayLeave(func() { w.take(character.One(character.New()), "") })
+}
 
 func (w *Window) open() {
 	w.mayLeave(func() {
@@ -737,13 +888,22 @@ func (w *Window) buildMenu() {
 	w.QuitItem.IsQuit = true
 	w.LimitsItem = menuItem("Limits...", fyne.KeyE, 0, w.editLimits)
 	w.TransformedItem = menuItem("Transformed form", fyne.KeyT, 0, w.toggleTransformed)
+	w.AddCharacterItem = menuItem("Add Character", "", 0, func() { w.appendCharacter(character.New()) })
+	w.DuplicateItem = menuItem("Duplicate Character", "", 0, w.duplicateCharacter)
+	w.RemoveCharacterItem = menuItem("Remove Character...", "", 0, w.removeCharacter)
+	w.MoveUpItem = menuItem("Move Up", "", 0, func() { w.moveCharacter(-1) })
+	w.MoveDownItem = menuItem("Move Down", "", 0, func() { w.moveCharacter(1) })
+	w.NextItem = menuItem("Next Character", fyne.KeyPageDown, 0, func() { w.stepCharacter(1) })
+	w.PreviousItem = menuItem("Previous Character", fyne.KeyPageUp, 0, func() { w.stepCharacter(-1) })
 	w.RulebookItem = menuItem("Open", "", 0, func() { w.openPage(1) })
 	w.ChoosePdfItem = menuItem("Choose PDF...", "", 0, func() { w.chooseRulebook(func(bool) {}) })
 	w.ViewerItem = menuItem("Viewer...", "", 0, w.chooseViewer)
 	w.Menu = fyne.NewMainMenu(
 		fyne.NewMenu("File", w.NewItem, w.OpenItem, w.SaveItem, w.SaveAsItem, fyne.NewMenuItemSeparator(),
 			w.QuitItem),
-		fyne.NewMenu("Character", w.LimitsItem, w.TransformedItem),
+		fyne.NewMenu("Character", w.LimitsItem, w.TransformedItem, fyne.NewMenuItemSeparator(),
+			w.AddCharacterItem, w.DuplicateItem, w.RemoveCharacterItem, fyne.NewMenuItemSeparator(),
+			w.MoveUpItem, w.MoveDownItem, fyne.NewMenuItemSeparator(), w.NextItem, w.PreviousItem),
 		fyne.NewMenu("Rulebook", w.RulebookItem, fyne.NewMenuItemSeparator(), w.ChoosePdfItem, w.ViewerItem))
 }
 
@@ -767,7 +927,7 @@ func (w *Window) textEntry(multi bool, set func(string)) *widget.Entry {
 
 // buildSheetTabs is the first two tabs: Character, and Attacks.
 func (w *Window) buildSheetTabs() (sheet, attacks fyne.CanvasObject) {
-	w.NameIn = w.textEntry(false, func(s string) { w.Character.Name = trim(s) })
+	w.NameIn = w.textEntry(false, func(s string) { w.Character.Name = trim(s); w.showCharacters() })
 	w.PlayerIn = w.textEntry(false, func(s string) {
 		character.SetText(&w.Character.HasPlayer, &w.Character.Player, trim(s))
 	})
@@ -840,6 +1000,7 @@ func New(a fyne.App) *Window {
 	w := &Window{App: a, Win: a.NewWindow(Title)}
 	w.Tell = w.dialogTell
 	w.Ask = w.dialogAsk
+	w.Confirm = w.dialogConfirm
 	w.ChoosePath = w.dialogPath
 	w.ChoosePdf = w.dialogPdf
 	w.AskText = w.dialogText
@@ -855,7 +1016,11 @@ func New(a fyne.App) *Window {
 	w.BackgroundTab = container.NewTabItem("Background", w.Background.object)
 	w.FluffTab = container.NewTabItem("Fluff", w.Background.fluff)
 	w.Tabs = container.NewAppTabs(w.SheetTab, w.AttacksTab, w.BackgroundTab, w.FluffTab)
-	w.Win.SetContent(w.Tabs)
+	// The characters' Select over the tab bar's empty right end: Fyne's
+	// main menu holds no widget, as po_ova_cg's menu bar does its Choice.
+	w.CharacterIn = widget.NewSelect(nil, func(string) { w.characterChosen() })
+	w.Win.SetContent(container.NewStack(w.Tabs,
+		container.NewVBox(container.NewHBox(layout.NewSpacer(), sized(w.CharacterIn, CharacterW, 0)))))
 	w.Win.Resize(fyne.NewSize(Width, Height))
 	w.Win.SetCloseIntercept(w.Quit)
 	w.Win.Canvas().SetOnTypedKey(func(e *fyne.KeyEvent) {
@@ -863,6 +1028,6 @@ func New(a fyne.App) *Window {
 			w.Escape()
 		}
 	})
-	w.take(character.New(), "")
+	w.take(character.One(character.New()), "")
 	return w
 }

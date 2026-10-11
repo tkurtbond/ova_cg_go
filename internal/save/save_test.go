@@ -38,27 +38,27 @@ func TestMain(m *testing.M) {
 // roundTrip loads name, saves it, loads the copy; want: the notices
 // expected.
 func roundTrip(t *testing.T, name string, want int) {
-	c, notices, err := character.Load(dataDir + name + ".yaml")
+	c, notices, err := character.LoadAll(dataDir + name + ".yaml")
 	if err != nil {
 		t.Fatalf("loaded: %v", err)
 	}
 	if len(notices) != want {
 		t.Errorf("notices: %d, want %d:\n    %s", len(notices), want, strings.Join(notices, "\n    "))
 	}
-	text := ToText(c)
+	text := AllToText(c)
 	saved := savedDir + name + ".yaml"
-	if err := Save(c, saved); err != nil {
+	if err := SaveAll(c, saved); err != nil {
 		t.Fatalf("saved: %v", err)
 	}
-	c2, notices, err := character.Load(saved)
+	c2, notices, err := character.LoadAll(saved)
 	if err != nil {
 		t.Fatalf("the copy loaded: %v", err)
 	}
 	if len(notices) != 0 {
 		t.Errorf("the copy has no notices: it lists its overrides:\n    %s", strings.Join(notices, "\n    "))
 	}
-	if text == "" || ToText(c2) != text {
-		t.Errorf("the copy saves the same:\n%s\n----\n%s", text, ToText(c2))
+	if text == "" || AllToText(c2) != text {
+		t.Errorf("the copy saves the same:\n%s\n----\n%s", text, AllToText(c2))
 	}
 }
 
@@ -71,8 +71,11 @@ func roundTrip(t *testing.T, name string, want int) {
 // (npc-type:), so Dr. Tomori's and Jiro's numbers are the rules'; Nazo's
 // and Shadowman's single Defense is their best, as the book prints it,
 // but Nazo's TV is the book's own (po_ova_cg's CHARACTER-DIFFERENCES.md).
-// Acacia and Zurkrieg hold more than one entity (TestErrors). The NPC
-// Fragments have no combat: block, so nothing to compare.
+// Acacia and Zurkrieg hold more than one entity (TestSeveral); Acacia's
+// notice is its Lock Heaven's Door's END. The NPC Fragments have no
+// combat: block, so nothing to compare. Fragment and Options hold two
+// Fragments each, and two-documents a character in each of two YAML
+// documents.
 func TestFixtures(t *testing.T) {
 	for _, x := range []struct {
 		name string
@@ -82,13 +85,14 @@ func TestFixtures(t *testing.T) {
 		{"Karis", 0}, {"Miho", 0}, {"Natsuki", 0}, {"Raine", 0}, {"Shou", 0}, {"Yuu", 0},
 		{"Sheet", 0}, {"Defenses", 0}, {"Wisp", 0},
 		{"Escaping", 5}, {"Unsorted", 8}, {"Vehicle", 5},
-		{"Ancel", 0}, {"Dr-Tomori", 0}, {"Jiro", 0}, {"Nazo", 1}, {"Saspar", 0}, {"Shadowman", 0},
+		{"Acacia", 1}, {"Zurkrieg", 0}, {"Ancel", 0}, {"Dr-Tomori", 0}, {"Jiro", 0}, {"Nazo", 1}, {"Saspar", 0}, {"Shadowman", 0},
 		{"Beat-Cop", 0}, {"Cat-Burglar", 0}, {"Dragon", 0}, {"Ebullient-Club-President", 0},
 		{"Ghosts", 0}, {"Goblin", 0}, {"GPL-Agents", 0}, {"Indebted-Yakuza", 0},
 		{"Magical-Fairies", 0}, {"Ninja", 0}, {"Oni", 0}, {"Sentry-Bots", 0}, {"Shady-Teacher", 0},
 		{"Shinto-Priest", 0}, {"Snobbish-Upperclassman", 0}, {"Spider-Tank", 0}, {"Thugs", 0},
 		{"Venomous-Killer", 0}, {"Weathered-Salaryman", 0}, {"Weird-Exchange-Student", 0},
 		{"Wild-Beast", 0}, {"Zombies", 0},
+		{"Fragment", 0}, {"Options", 0}, {"two-documents", 0},
 	} {
 		t.Run(x.name, func(t *testing.T) { roundTrip(t, x.name, x.want) })
 	}
@@ -97,10 +101,6 @@ func TestFixtures(t *testing.T) {
 func TestErrors(t *testing.T) {
 	for _, x := range []struct{ path, want string }{
 		{dataDir + "Broken.yaml", "level"},
-		{dataDir + "Fragment.yaml", "holds 2 characters"},
-		{dataDir + "Options.yaml", "holds 2 characters"},
-		{dataDir + "Acacia.yaml", "holds 3 characters"},
-		{dataDir + "Zurkrieg.yaml", "holds 2 characters"},
 		{dataDir + "no-such-file.yaml", "no-such-file.yaml"},
 	} {
 		c, _, err := character.Load(x.path)
@@ -112,6 +112,65 @@ func TestErrors(t *testing.T) {
 	c.Name = "Nobody"
 	if err := Save(c, "../../obj/no-such-dir/x.yaml"); err == nil || err.Error() == "" {
 		t.Error("a save to a missing directory fails, with a message")
+	}
+}
+
+// names is the characters' names, "|" between them.
+func names(cs []*character.Character) string {
+	l := make([]string, len(cs))
+	for i, c := range cs {
+		l[i] = c.Name
+	}
+	return strings.Join(l, "|")
+}
+
+// TestSeveral: files of several characters (po_ova_cg's PLAN.md,
+// "Several characters in a file"): every one loaded, in order, each its
+// notices, and saved in that order; Load still takes exactly one.
+func TestSeveral(t *testing.T) {
+	cs, notices, err := character.LoadAll(dataDir + "Acacia.yaml")
+	if err != nil || names(cs) != "Acacia|Sazza and Fraz|High Fructo Cezar" {
+		t.Errorf("Acacia.yaml: her and her two demons, in the file's order: %v %q", err, names(cs))
+	}
+	if len(notices) != 1 || !strings.HasPrefix(notices[0], "Acacia: Lock Heaven's Door: END") {
+		t.Errorf("its one notice names its character: %q", notices)
+	}
+	cs, _, err = character.LoadAll(dataDir + "two-documents.yaml")
+	if err != nil || names(cs) != "First Of Two|Second Of Two" {
+		t.Errorf("two-documents.yaml: a character from each document: %v %q", err, names(cs))
+	}
+	err = SaveAll(cs, "../../obj/two-documents.yaml")
+	cs2, _, err2 := character.LoadAll("../../obj/two-documents.yaml")
+	if err != nil || err2 != nil || names(cs2) != "First Of Two|Second Of Two" ||
+		strings.Count(AllToText(cs), "---") > 0 {
+		t.Errorf("saved as one document, the two in order: %v %v %q", err, err2, names(cs2))
+	}
+	cs, notices, err = character.LoadAll(dataDir + "Zurkrieg.yaml")
+	if err != nil || names(cs) != "Zurkrieg|Men in Black" || !cs[0].HasCombat || !cs[1].IsFragment ||
+		cs[1].HasCombat || len(notices) != 0 {
+		t.Errorf("Zurkrieg.yaml: him, with combat stats, and his Men in Black, a Fragment; no notices: %v", err)
+	}
+	c, _, err := character.Load(dataDir + "Zurkrieg.yaml")
+	if c != nil || err == nil || !strings.Contains(err.Error(), "holds 2 characters, not one") {
+		t.Errorf("Load, for one character, refuses it, saying how many it holds: %v", err)
+	}
+}
+
+// TestCopy: a copy, for Duplicate Character, saves the same and shares
+// nothing.
+func TestCopy(t *testing.T) {
+	c, _, err := character.Load(dataDir + "Fukiko.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := Copy(c)
+	if d == nil || d == c || ToText(d) != ToText(c) {
+		t.Fatal("a copy, the same when saved")
+	}
+	d.Health.Override(55, false, false)
+	character.Recompute(d)
+	if c.Health.Overridden || len(d.Traits) == 0 || d.Traits[0] == c.Traits[0] {
+		t.Error("the copy's HEALTH overridden, the first's not: they share nothing")
 	}
 }
 

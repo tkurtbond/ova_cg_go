@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tkurtbond/go_ova_cg/internal/character"
 	"github.com/tkurtbond/go_ova_cg/internal/prefs"
 	"github.com/tkurtbond/go_ova_cg/internal/viewer"
 )
@@ -53,7 +54,7 @@ func TestLimits(t *testing.T) {
 	fresh := func() *SettingsDialog {
 		w.NewItem.Action()
 		addAbility(w, "Attack", 3)
-		w.Adopt(w.Character, "", nil)
+		w.Adopt(character.One(w.Character), "", nil)
 		w.LimitsItem.Action()
 		return w.Settings
 	}

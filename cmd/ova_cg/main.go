@@ -138,11 +138,11 @@ func main() {
 		os.Stdout.WriteString(usage)
 		return
 	}
-	var c *character.Character
+	var cs []*character.Character
 	var notices []string
 	if o.file != "" {
 		var err error
-		if c, notices, err = character.Load(o.file); err != nil {
+		if cs, notices, err = character.LoadAll(o.file); err != nil {
 			fail(failureStatus, err.Error(), "")
 		}
 	}
@@ -157,8 +157,8 @@ func main() {
 	w.UsePrefs(prefs.Open(prefs.DefaultPath()))
 	w.Win.Show()
 	w.Win.Canvas().Focus(w.NameIn) // where po_ova_cg's cursor starts
-	if c != nil {
-		w.Adopt(c, o.file, notices)
+	if cs != nil {
+		w.Adopt(cs, o.file, notices)
 	}
 	a.Run()
 }

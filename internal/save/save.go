@@ -7,8 +7,8 @@
 // is a literal block, as in ova_fmt's fixtures; any other is plain where
 // that is safe, else quoted. Numbers, booleans and keys are plain.
 //
-// One document, a sequence of one entity, its keys in the order of
-// ova_fmt's fixtures. The numbers written are the ones in effect: an
+// One document, a sequence of the file's characters, in order, each
+// entity's keys in the order of ova_fmt's fixtures. The numbers written are the ones in effect: an
 // override where there is one, which the mapping's overrides: key then
 // lists. Only keys both ova_fmts read are written (AGENTS.md).
 //
@@ -363,18 +363,20 @@ func entity(c *character.Character) *yaml.Node {
 	return m
 }
 
-// document is c's document.
-func document(c *character.Character) *yaml.Node {
+// document is the document of the characters cs, in order.
+func document(cs []*character.Character) *yaml.Node {
 	root := sequence()
-	appendTo(root, entity(c))
+	for _, c := range cs {
+		appendTo(root, entity(c))
+	}
 	return &yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{root}}
 }
 
-func encode(c *character.Character) ([]byte, error) {
+func encode(cs []*character.Character) ([]byte, error) {
 	var b bytes.Buffer
 	enc := yaml.NewEncoder(&b)
 	enc.SetIndent(2)
-	if err := enc.Encode(document(c)); err != nil {
+	if err := enc.Encode(document(cs)); err != nil {
 		return nil, err
 	}
 	if err := enc.Close(); err != nil {
@@ -383,22 +385,25 @@ func encode(c *character.Character) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// ToText is c as YAML text, for the tests.
-func ToText(c *character.Character) string {
-	b, err := encode(c)
+// AllToText is the characters cs as YAML text, for the tests.
+func AllToText(cs []*character.Character) string {
+	b, err := encode(cs)
 	if err != nil {
 		return ""
 	}
 	return string(b)
 }
 
-// Save writes c to the file at path, through path.tmp, which replaces it
-// only once written. An error if it couldn't be, the old file left as it
-// was.
-func Save(c *character.Character, path string) error {
-	b, err := encode(c)
+// ToText is c as YAML text, for the tests.
+func ToText(c *character.Character) string { return AllToText(character.One(c)) }
+
+// SaveAll writes the characters cs to the file at path, through
+// path.tmp, which replaces it only once written. An error if it couldn't
+// be, the old file left as it was.
+func SaveAll(cs []*character.Character, path string) error {
+	b, err := encode(cs)
 	if err != nil {
-		return fmt.Errorf("the character's YAML couldn't be built: %v", err)
+		return fmt.Errorf("the characters' YAML couldn't be built: %v", err)
 	}
 	tmp := path + ".tmp"
 	f, err := os.Create(tmp)
@@ -417,4 +422,29 @@ func Save(c *character.Character, path string) error {
 		return fmt.Errorf("couldn't replace %s with %s: %v", path, tmp, err)
 	}
 	return nil
+}
+
+// Save writes c alone, as SaveAll.
+func Save(c *character.Character, path string) error { return SaveAll(character.One(c), path) }
+
+// Copy is a copy of c, sharing nothing with it: c as it would be saved,
+// read back as a file's character is. A saved character reads back with
+// no notices, so the copy's numbers are c's. nil if c's YAML couldn't be
+// read (a programmer's error).
+func Copy(c *character.Character) *character.Character {
+	b, err := encode(character.One(c))
+	if err != nil {
+		return nil
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(b, &doc); err != nil || len(doc.Content) == 0 || len(doc.Content[0].Content) == 0 {
+		return nil
+	}
+	var l entities.Loader
+	e, err := l.Load(doc.Content[0].Content[0], 0)
+	if err != nil || len(l.Errors) > 0 {
+		return nil
+	}
+	copy, _ := character.FromEntity(e)
+	return copy
 }

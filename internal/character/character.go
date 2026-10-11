@@ -562,23 +562,24 @@ func openError(path string, err error) error {
 	return fmt.Errorf("%s: error: %v", path, err)
 }
 
-// ReadEntity reads the first entity of the file at path, as po_ova_fmt
-// reads it, and n, how many the file holds. An error if it can't be
-// read, or entities finds a problem in any of them.
-func ReadEntity(path string) (first *entities.Entity, n int, err error) {
+// ReadEntities reads every entity of the file at path, of every
+// document in it, in order, as po_ova_fmt reads them. An error if it
+// can't be read, or entities finds a problem in any of them.
+func ReadEntities(path string) ([]*entities.Entity, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, 0, openError(path, err)
+		return nil, openError(path, err)
 	}
 	defer f.Close()
 	var l entities.Loader
+	var es []*entities.Entity
 	dec := yaml.NewDecoder(f)
 	for {
 		var doc yaml.Node
 		if err := dec.Decode(&doc); err == io.EOF {
 			break
 		} else if err != nil {
-			return nil, 0, fmt.Errorf("%s: %v", path, err)
+			return nil, fmt.Errorf("%s: %v", path, err)
 		}
 		var root *yaml.Node
 		if doc.Kind == yaml.DocumentNode && len(doc.Content) > 0 {
@@ -588,17 +589,14 @@ func ReadEntity(path string) (first *entities.Entity, n int, err error) {
 			}
 		}
 		if root == nil || root.Kind != yaml.SequenceNode {
-			return nil, 0, fmt.Errorf("expected a top-level YAML sequence of entities in %s", path)
+			return nil, fmt.Errorf("expected a top-level YAML sequence of entities in %s", path)
 		}
 		for i, item := range root.Content {
 			e, err := l.Load(item, i)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
-			if n == 0 {
-				first = e
-			}
-			n++
+			es = append(es, e)
 		}
 	}
 	if len(l.Errors) > 0 {
@@ -606,29 +604,65 @@ func ReadEntity(path string) (first *entities.Entity, n int, err error) {
 		for i, le := range l.Errors {
 			msgs[i] = le.Error()
 		}
-		return nil, 0, errors.New(strings.Join(msgs, "\n"))
+		return nil, errors.New(strings.Join(msgs, "\n"))
 	}
-	return first, n, nil
+	return es, nil
 }
 
-// Load reads the character in the file at path, its numbers the file's:
-// each its mapping's overrides: lists is an override, and each other
-// that differs from the rules' is kept as one too, with a notice. An
-// error if the file can't be read, entities finds a problem, or it
-// doesn't hold exactly one character (the generator edits one at a
-// time).
-func Load(path string) (c *Character, notices []string, err error) {
-	e, n, err := ReadEntity(path)
-	if err != nil {
-		return nil, nil, err
+// ReadEntity reads the first entity of the file at path, and n, how many
+// it holds; as ReadEntities.
+func ReadEntity(path string) (first *entities.Entity, n int, err error) {
+	es, err := ReadEntities(path)
+	if err != nil || len(es) == 0 {
+		return nil, 0, err
 	}
-	if n != 1 {
-		return nil, nil, fmt.Errorf("%s holds %d characters: the generator edits one at a time", path, n)
-	}
+	return es[0], len(es), nil
+}
+
+// FromEntity is the character of entity e, its numbers e's: each its
+// mapping's overrides: lists is an override, and each other that differs
+// from the rules' is kept as one too, with a notice.
+func FromEntity(e *entities.Entity) (c *Character, notices []string) {
 	c = Build(e)
 	var ad adopter
 	ad.adoptNumbers(e, c)
-	return c, ad.notices, nil
+	return c, ad.notices
+}
+
+// One is c alone, as a file's characters.
+func One(c *Character) []*Character { return []*Character{c} }
+
+// LoadAll reads every character in the file at path, in order, as
+// FromEntity builds them, with the notices of all of them (each names
+// its character). An error if the file can't be read, entities finds a
+// problem, or it holds none.
+func LoadAll(path string) (cs []*Character, notices []string, err error) {
+	es, err := ReadEntities(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(es) == 0 {
+		return nil, nil, fmt.Errorf("%s holds no characters", path)
+	}
+	for _, e := range es {
+		c, n := FromEntity(e)
+		cs = append(cs, c)
+		notices = append(notices, n...)
+	}
+	return cs, notices, nil
+}
+
+// Load reads the one character in the file at path, as LoadAll; an
+// error as LoadAll's, or if the file holds more than one.
+func Load(path string) (c *Character, notices []string, err error) {
+	cs, notices, err := LoadAll(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cs) != 1 {
+		return nil, nil, fmt.Errorf("%s holds %d characters, not one", path, len(cs))
+	}
+	return cs[0], notices, nil
 }
 
 // ---- Editing (the window's) ----

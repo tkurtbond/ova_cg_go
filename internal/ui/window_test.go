@@ -34,6 +34,9 @@ type fakes struct {
 	told        string // the last
 	answer      Answer // what Ask answers,
 	asked       int    // and how often it was asked
+	question    string // what Ask or Confirm asked last
+	yes         bool   // what Confirm answers,
+	confirmed   int    // and how often it was asked
 	chosen      string // what ChoosePath answers; "": cancelled
 	chosenImage string // what ChooseImage answers
 	page        int    // the last page OpenPage was asked for
@@ -48,7 +51,8 @@ func newWindow(t *testing.T) (*Window, *fakes) {
 	w := New(a)
 	f := &fakes{t: t, answer: Cancel}
 	w.Tell = func(text string) { f.tells++; f.told = text; t.Logf("told: %s", text) }
-	w.Ask = func(q string, answer func(Answer)) { f.asked++; answer(f.answer) }
+	w.Ask = func(q string, answer func(Answer)) { f.asked++; f.question = q; answer(f.answer) }
+	w.Confirm = func(q, yes string, then func(bool)) { f.confirmed++; f.question = q; then(f.yes) }
 	w.ChoosePath = func(save bool, then func(string)) { then(f.chosen) }
 	w.ChooseImage = func(then func(string)) { then(f.chosenImage) }
 	w.ChoosePdf = func(then func(string)) { then("") }
@@ -106,6 +110,17 @@ func holds(root, o fyne.CanvasObject) bool {
 	}
 	return false
 }
+
+// listed says whether the characters' Select lists labels, "|" between
+// them, and shows the one shown.
+func listed(w *Window, labels string) bool {
+	return strings.Join(w.CharacterIn.Options, "|") == labels && w.CharacterIn.SelectedIndex() == w.Current &&
+		w.Character == w.Characters[w.Current]
+}
+
+// shownNow says whether the window shows the character shown: its name,
+// and every number.
+func shownNow(w *Window, name string) bool { return w.NameIn.Text == name && allShown(w) }
 
 func traitNamed(w *Window, name string) *character.Trait {
 	for _, t := range w.Character.Traits {
@@ -213,7 +228,7 @@ func TestWindow(t *testing.T) {
 	// A name the rulebook's lists don't have: "p. ?", and a warning that
 	// says so.
 	character.InsertTrait(&c.Traits, character.NewTrait(nil, rules.Ability, 1, "Magic, Testing", ""))
-	w.Adopt(c, "", nil)
+	w.Adopt(character.One(c), "", nil)
 	i := w.Abilities.Find("Magic, Testing")
 	check(t, w.Abilities.Line(i) == "+1 Magic, Testing\tp. ?" && w.Abilities.ListShown(),
 		"an unknown name: listed with p. ?")
@@ -385,6 +400,9 @@ func TestWindow(t *testing.T) {
 	w.QuitItem.Action()
 	check(t, f.asked == 3 && w.Closed, "Don't save: the window goes, which ends the program")
 
+	// ---- Several characters in a file ----
+	testSeveral(t, w, f)
+
 	// ---- A Sample NPC loaded ----
 	f.tells = 0
 	ok = load(w, "Jiro.yaml")
@@ -460,4 +478,100 @@ func TestChoosers(t *testing.T) {
 	} {
 		open()
 	}
+}
+
+// testSeveral: several characters in a file (po_ova_cg's PLAN.md,
+// "Several characters in a file").
+func testSeveral(t *testing.T, w *Window, f *fakes) {
+	title := func() string { return w.Win.Title() }
+	f.tells = 0
+	ok := load(w, "Acacia.yaml")
+	check(t, ok && f.tells == 1 && len(w.Characters) == 3 && w.Current == 0 &&
+		title() == "OVA Character Generator - Acacia.yaml (1 of 3)" && shownNow(w, "Acacia"),
+		"Acacia.yaml: her and her demons, the first shown, the title saying which of how many")
+	check(t, listed(w, "1. Acacia|2. Sazza and Fraz|3. High Fructo Cezar"),
+		"the Select beside the tabs lists them, by number and name, the first chosen")
+	check(t, w.PreviousItem.Disabled && w.MoveUpItem.Disabled && !w.NextItem.Disabled && !w.MoveDownItem.Disabled &&
+		!w.RemoveCharacterItem.Disabled,
+		"Previous and Move Up inactive at the first; Next, Move Down and Remove active")
+	w.CharacterIn.SetSelectedIndex(2)
+	check(t, w.Current == 2 && shownNow(w, "High Fructo Cezar") && !w.Modified &&
+		title() == "OVA Character Generator - Acacia.yaml (3 of 3)" && w.NextItem.Disabled && w.MoveDownItem.Disabled &&
+		!w.PreviousItem.Disabled, "the third chosen: shown, nothing changed, Next and Move Down inactive at the last")
+	w.PreviousItem.Action()
+	check(t, w.Current == 1 && shownNow(w, "Sazza and Fraz") &&
+		listed(w, "1. Acacia|2. Sazza and Fraz|3. High Fructo Cezar"), "Character > Previous Character: the second")
+	w.NextItem.Action()
+	check(t, w.Current == 2 && shownNow(w, "High Fructo Cezar"), "Next Character: the third again")
+	w.NameIn.SetText("Cezar")
+	check(t, listed(w, "1. Acacia|2. Sazza and Fraz|3. Cezar") && w.Modified &&
+		title() == "OVA Character Generator - Acacia.yaml (3 of 3) *", "renamed: the Select follows, the file modified")
+
+	w.AddCharacterItem.Action()
+	check(t, len(w.Characters) == 4 && w.Current == 3 && shownNow(w, "") && w.Abilities.Count() == 0 &&
+		len(w.Rows) == 0 && listed(w, "1. Acacia|2. Sazza and Fraz|3. Cezar|4. (no name)"),
+		"Character > Add Character: a new one, last, shown")
+	w.NameIn.SetText("Imp & Co")
+	check(t, listed(w, "1. Acacia|2. Sazza and Fraz|3. Cezar|4. Imp & Co"), "an & in a name shown as it is")
+
+	w.CharacterIn.SetSelectedIndex(0)
+	w.DuplicateItem.Action()
+	c := w.Character
+	check(t, len(w.Characters) == 5 && w.Current == 4 && shownNow(w, "Acacia") && c != w.Characters[0] &&
+		save.ToText(c) == save.ToText(w.Characters[0]),
+		"Duplicate Character: a copy of Acacia, last, shown, the same when saved")
+	w.Numbers[Health].Type("55")
+	check(t, c.Health.Overridden && !w.Characters[0].Health.Overridden,
+		"the copy's HEALTH overridden, the first's not: they share nothing")
+	w.MoveUpItem.Action()
+	check(t, w.Current == 3 && w.Characters[3] == c && title() == "OVA Character Generator - Acacia.yaml (4 of 5) *" &&
+		listed(w, "1. Acacia|2. Sazza and Fraz|3. Cezar|4. Acacia|5. Imp & Co") && shownNow(w, "Acacia"),
+		"Move Up: the copy fourth, still shown")
+	w.MoveDownItem.Action()
+	check(t, w.Current == 4 && w.Characters[4] == c &&
+		listed(w, "1. Acacia|2. Sazza and Fraz|3. Cezar|4. Imp & Co|5. Acacia"), "Move Down: last again")
+
+	f.confirmed, f.yes = 0, false
+	w.RemoveCharacterItem.Action()
+	check(t, f.confirmed == 1 && f.question == "Remove Acacia from the file?" && len(w.Characters) == 5,
+		"Remove Character...: asked first; Cancel removes nothing")
+	f.yes = true
+	w.RemoveCharacterItem.Action()
+	check(t, len(w.Characters) == 4 && w.Current == 3 && shownNow(w, "Imp & Co") &&
+		listed(w, "1. Acacia|2. Sazza and Fraz|3. Cezar|4. Imp & Co"), "removed, the last: the one before it shown")
+	w.CharacterIn.SetSelectedIndex(1)
+	w.RemoveCharacterItem.Action()
+	check(t, w.Current == 1 && shownNow(w, "Cezar") && listed(w, "1. Acacia|2. Cezar|3. Imp & Co"),
+		"removed from the middle: the one after it shown")
+
+	// Saved: every character, in order; each portrait rebased.
+	x := w.Characters[2]
+	character.SetText(&x.HasPortrait, &x.Portrait, "images/imp.png")
+	f.chosen = objDir + "several.yaml"
+	w.SaveAsItem.Action()
+	check(t, !w.Modified && title() == "OVA Character Generator - several.yaml (2 of 3)" &&
+		x.Portrait == "../testdata/images/imp.png", "Save As: saved, and a portrait not shown rebased too")
+	text := save.AllToText(w.Characters)
+	f.tells = 0
+	ok = w.Load(objDir + "several.yaml")
+	check(t, ok && f.tells == 0 && title() == "OVA Character Generator - several.yaml (1 of 3)" &&
+		listed(w, "1. Acacia|2. Cezar|3. Imp & Co") && save.AllToText(w.Characters) == text,
+		"loaded again: all three, in order, the same, with nothing to say")
+	w.NameIn.SetText("Acacia II")
+	f.answer, f.asked = Cancel, 0
+	w.NewItem.Action()
+	check(t, f.asked == 1 && f.question == "Save the changes to several.yaml first?",
+		"New with changes: the question names the file")
+	f.yes = true
+	w.RemoveCharacterItem.Action()
+	w.RemoveCharacterItem.Action()
+	check(t, len(w.Characters) == 1 && w.RemoveCharacterItem.Disabled &&
+		title() == "OVA Character Generator - several.yaml *" && listed(w, "1. Imp & Co"),
+		"down to one: Remove inactive, and the title without a count")
+	f.confirmed = 0
+	w.RemoveCharacterItem.Action()
+	check(t, f.confirmed == 0 && len(w.Characters) == 1, "and Remove does nothing: a file holds at least one")
+	f.answer = Discard
+	w.NewItem.Action()
+	check(t, len(w.Characters) == 1 && listed(w, "1. (no name)"), "New: one new character")
 }

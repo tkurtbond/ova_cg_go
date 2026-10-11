@@ -207,6 +207,7 @@ own file in a temporary directory.
 | `FlMenus.MenuBar` | `fyne.MainMenu` (File, Character, Rulebook); shortcuts `desktop.CustomShortcut` with `KeyModifierShortcutDefault` |
 | Character > Transformed form, a toggle | a `fyne.MenuItem` with `Checked` |
 | `FlLayout.Tabs` | `container.AppTabs` ("Character", "Attacks", "Background", "Fluff") |
+| the characters' `FlMenus.Choice` at the menu bar's right | a `widget.Select` over the tab bar's empty right end (`container.NewStack`): Fyne's main menu holds no widget |
 | `FlBrowsers.HoldBrowser` with a page column | `widget.List`, each row a name label and a right-hand page label |
 | `FlMenus.Choice` of labels | `widget.Select` of `rules.Label`s |
 | `FlValuators.Spinner` | `ui.Spinner`: a bounded integer with `-` and `+` buttons (Fyne has none) |
@@ -266,6 +267,16 @@ anything. While the window fills its widgets from the character
   the format: the oracle is po_ova_fmt's output for the saved copy
   against the fixture (`test/files.sh`), as in po_ova_cg, and a saved
   copy must load with no notices and save the same bytes again.
+- **The characters' Select is beside the tabs, not the menus.**
+  po_ova_cg's Choice of a file's characters is at the right of its
+  menu bar; Fyne's `MainMenu` holds menu items only. Over the tab bar's
+  empty right end, in a `container.NewStack` with the tabs, it takes no
+  height either; the four tabs and its 230 fit in 640 (a capture from
+  the test driver, Acacia loaded). Fyne needs no "&" doubled, as
+  FLTK's menus do. Since Fyne's menu shortcuts are tried before the
+  focused widget (above), Ctrl+PgDn and Ctrl+PgUp should work from a
+  multi-line entry too, unlike FLTK's; not checked on the real
+  program.
 - **No valgrind targets.** Go is memory-safe and collected; the
   equivalent checks are `go vet` and `go test -race` (`make check`).
 
@@ -359,6 +370,22 @@ test-headless` for the program itself) and its entry here marked
    tabs out of order, Background and Fluff swapped; curses as
    Abilities; the curse message; Character Hooks not edited) each
    failed them.
+
+13. **Several characters in a file** (po_ova_cg's Phase 13). [done]
+   - `character`: `ReadEntities`, `FromEntity`, `LoadAll`, `One`;
+     `Load` keeps exactly one. `save`: `SaveAll`, `AllToText`, `Copy`.
+     `cmd/ova_cg` opens a file of any number.
+   - The window: `Characters` and `Current`; `CharacterIn`, the Select
+     beside the tabs ("Decisions the port makes"); Character > Add,
+     Duplicate, Remove..., Move Up, Move Down, Next, Previous, each
+     `Disabled` where it can do nothing; `Confirm` for Remove; the
+     title's "(N of M)"; Save As rebasing every portrait.
+   - `save_test` ports `TestFiles`' new checks (Acacia, Zurkrieg,
+     Fragment, Options and `two-documents` round-tripped; `TestSeveral`,
+     `TestCopy`), `window_test` `TestWindow`'s (`testSeveral`).
+     Fourteen bugs planted: thirteen failed them; the fourteenth, the
+     Select's `filling` guard taken out, can't be seen, since the index
+     it sets is always `Current`, which choosing ignores.
 
 `make test-viewers` and `make check-pages` were not run in the port's
 session: they need the real viewers and the rulebook's PDF. Run them

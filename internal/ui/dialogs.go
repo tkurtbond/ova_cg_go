@@ -82,6 +82,17 @@ func (w *Window) dialogTell(text string) {
 	w.modal(d, d.Hide)
 }
 
+// dialogConfirm asks question, with a button yes and Cancel, the
+// default.
+func (w *Window) dialogConfirm(question, yes string, then func(bool)) {
+	var d *dialog.CustomDialog
+	cancel := widget.NewButton("Cancel", func() { d.Hide(); then(false) })
+	cancel.Importance = widget.HighImportance
+	d = dialog.NewCustomWithoutButtons(Title, container.NewVBox(widget.NewLabel(question),
+		container.NewHBox(layout.NewSpacer(), widget.NewButton(yes, func() { d.Hide(); then(true) }), cancel)), w.Win)
+	w.modal(d, func() { d.Hide(); then(false) })
+}
+
 func (w *Window) dialogAsk(question string, answer func(Answer)) {
 	var d *dialog.CustomDialog
 	button := func(label string, a Answer) *widget.Button {
