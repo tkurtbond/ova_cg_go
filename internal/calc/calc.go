@@ -116,6 +116,7 @@ type Trait struct {
 	Partner *Sheet   // a Companion's or Vehicle's own sheet
 	HasEnd  bool     // it has Perks, Flaws or Endurance Use: End is its cost
 	End     Number
+	Points  int // its Scaled Cost points (p. 21), as the totals count them; 0 in a form
 }
 
 // Attack is an attack in the combat box.
@@ -177,11 +178,11 @@ type Sheet struct {
 	HasIncorporeal bool
 	HasReserve     bool
 	// The running totals: levels (Knowledge and Ineptitude halved if the
-	// options say so), the Character Total, and Scaled Cost's points
-	// (abilities' less weaknesses').
-	AbilityLevels, WeaknessLevels, Total, Points Number
-	AbilityPoints, WeaknessPoints                int        // both >= 0
-	Warnings                                     []*Warning // from the last Compute, in the order found
+	// options say so), the Character Total, and Scaled Cost's points:
+	// the abilities', and the abilities' less the weaknesses'.
+	AbilityLevels, WeaknessLevels, Total, AbilityPoints, Points Number
+	WeaknessPoints                                              int        // >= 0
+	Warnings                                                    []*Warning // from the last Compute, in the order found
 }
 
 // ---- Numbers ----
@@ -735,16 +736,17 @@ func abs(n int) int {
 func (s *Sheet) computeTotals() {
 	o := &s.Options
 	half := o.HalfCostKnowledge && (o.BaseZero || o.PowerCeiling || o.ScaledCost)
-	abilities, weaknesses := 0, 0
-	s.AbilityPoints, s.WeaknessPoints = 0, 0
+	abilities, abilityPoints, weaknesses := 0, 0, 0
+	s.WeaknessPoints = 0
 	for _, t := range s.Traits {
 		lv, pts := t.Level, scaled(abs(t.Level))
 		if half && t.has(rules.HalfCost) {
 			lv, pts = halfUp(lv), halfUp(pts)
 		}
+		t.Points = pts
 		if t.Kind == rules.Ability {
 			abilities += lv
-			s.AbilityPoints += pts
+			abilityPoints += pts
 		} else {
 			weaknesses += lv
 			s.WeaknessPoints += pts
@@ -753,10 +755,11 @@ func (s *Sheet) computeTotals() {
 	s.AbilityLevels.set(abilities)
 	s.WeaknessLevels.set(weaknesses)
 	s.Total.set(s.AbilityLevels.Get() + s.WeaknessLevels.Get())
-	s.Points.set(s.AbilityPoints - s.WeaknessPoints)
+	s.AbilityPoints.set(abilityPoints)
+	s.Points.set(s.AbilityPoints.Get() - s.WeaknessPoints)
 	var measure, spent int
 	if o.ScaledCost {
-		measure, spent = s.Points.Get(), s.AbilityPoints
+		measure, spent = s.Points.Get(), s.AbilityPoints.Get()
 	} else {
 		measure, spent = s.Total.Get(), s.AbilityLevels.Get()
 	}

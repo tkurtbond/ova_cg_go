@@ -11,7 +11,7 @@ package ui
 //
 // It edits the character as the user works, as the attack dialog does,
 // so the totals and warnings behind it follow each change (the window's
-// changed); Cancel puts back the options there were. It is modal but
+// limitsChanged); Cancel puts back the options there were. It is modal but
 // doesn't wait: OK and Cancel call done.
 //
 // A number turned off keeps what it was, so turning it on again brings
@@ -87,7 +87,7 @@ func (d *SettingsDialog) take() {
 	c.Options = o
 	c.HasOptions = o.BaseZero || o.PowerCeiling || o.StartingLevels || o.ScaledCost || o.HalfCostKnowledge ||
 		o.CombinedEffectiveness || d.oldHas && same(&o, &d.old)
-	d.w.changed()
+	d.w.limitsChanged()
 }
 
 func (d *SettingsDialog) changeAction() {
@@ -114,7 +114,7 @@ func (d *SettingsDialog) CancelEdit() {
 	c := d.character
 	if !same(&c.Options, &d.old) || c.HasOptions != d.oldHas {
 		c.Options, c.HasOptions = d.old, d.oldHas
-		d.w.changed()
+		d.w.limitsChanged()
 	}
 	d.finish(false)
 }

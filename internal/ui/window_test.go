@@ -67,7 +67,7 @@ func newWindow(t *testing.T) (*Window, *fakes) {
 func allShown(w *Window) bool {
 	c := w.Character
 	for i, n := range []*calc.Number{&c.Defense, &c.Barrier, &c.Health, &c.Endurance, &c.Reserve, &c.TV,
-		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points, &c.Incorporeal} {
+		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points, &c.Incorporeal, &c.AbilityPoints} {
 		if !w.Numbers[i].Shows(n) {
 			return false
 		}
@@ -175,7 +175,7 @@ func TestWindow(t *testing.T) {
 		"every Ability and Weakness is listed with its page")
 	check(t, allShown(w), "every number shown is the model's")
 	check(t, w.Numbers[Barrier].Visible() && !w.Numbers[Reserve].Visible() && !w.Numbers[Points].Visible() &&
-		!w.Numbers[Incorporeal].Visible(),
+		!w.Numbers[Incorporeal].Visible() && !w.Numbers[AbilityPoints].Visible(),
 		"Barrier DEFENSE shown, for Barrier; the Reserve, the Scaled Cost points and Incorporeal DEFENSE not")
 	check(t, len(w.Rows) == 2, "a row in the combat box for each attack")
 	r := w.Rows[0]

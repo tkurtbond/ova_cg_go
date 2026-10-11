@@ -361,18 +361,20 @@ func NewHelpButton(page int, openPage func(int)) *HelpButton {
 // ---- Lists ----
 
 // lines is a list of lines, each of columns: the first the name, the
-// others right of it, at widths.
+// others right of it, at widths; a column right of the name may be
+// hidden.
 type lines struct {
 	List     *widget.List
 	rows     [][]string
 	widths   []float32
-	selected int // -1: none
+	hidden   []bool // hidden[i]: the column at widths[i]
+	selected int    // -1: none
 	quiet    bool
 	OnSelect func(i int) // after the user selects line i
 }
 
 func newLines(widths ...float32) *lines {
-	l := &lines{widths: widths, selected: -1}
+	l := &lines{widths: widths, hidden: make([]bool, len(widths)), selected: -1}
 	l.List = widget.NewList(
 		func() int { return len(l.rows) },
 		func() fyne.CanvasObject {
@@ -397,7 +399,9 @@ func newLines(widths ...float32) *lines {
 					text = row[i+1]
 				}
 				col.(*fyne.Container).Objects[1].(*widget.Label).SetText(text)
+				visible(!l.hidden[i], col)
 			}
+			c.Objects[1].Refresh()
 		})
 	l.List.OnSelected = func(id widget.ListItemID) {
 		l.selected = id
@@ -433,12 +437,22 @@ func (l *lines) Count() int { return len(l.rows) }
 // Selected is the line selected; -1 for none.
 func (l *lines) Selected() int { return l.selected }
 
-// Line is line i's columns joined by tabs; "" past the end: for tests.
+// ShowColumn shows or hides the column at widths[i], from the next Set.
+func (l *lines) ShowColumn(i int, on bool) { l.hidden[i] = !on }
+
+// Line is line i's columns shown joined by tabs; "" past the end: for
+// tests.
 func (l *lines) Line(i int) string {
 	if i < 0 || i >= len(l.rows) {
 		return ""
 	}
-	return strings.Join(l.rows[i], "\t")
+	cols := []string{l.rows[i][0]}
+	for j, s := range l.rows[i][1:] {
+		if j >= len(l.hidden) || !l.hidden[j] {
+			cols = append(cols, s)
+		}
+	}
+	return strings.Join(cols, "\t")
 }
 
 // SelectedLine is the selected line's text; "" for none: for tests.

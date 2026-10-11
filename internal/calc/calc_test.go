@@ -539,16 +539,24 @@ func TestLimits(t *testing.T) {
 	Compute(s)
 	c.int(&s.AbilityLevels, 16, "Knowledge 2 at half cost")
 	know.Level = 3
-	tr(&s.Traits, "Ineptitude", -3)
+	inept := tr(&s.Traits, "Ineptitude", -3)
 	Compute(s)
 	c.int(&s.AbilityLevels, 17, "Knowledge 3 at half cost, rounded up")
 	c.int(&s.WeaknessLevels, -12, "Ineptitude -3 at half cost, rounded up")
 	s.Options.ScaledCost = true
 	know.Level = 5
 	Compute(s)
-	c.is(s.AbilityPoints, 53, "Scaled Cost: Knowledge 5 at half cost, 8")
+	c.int(&s.AbilityPoints, 53, "Scaled Cost: Knowledge 5 at half cost, 8")
 	c.is(s.WeaknessPoints, 15, "Scaled Cost: Ineptitude -3 at half cost, 2")
+	c.is(know.Points, 8, "Scaled Cost: Knowledge 5's own points, halved")
+	c.is(inept.Points, 2, "Scaled Cost: Ineptitude -3's own points, halved")
+	c.is(s.Traits[0].Points, 15, "Scaled Cost: Agile 5's own points")
 	c.ok(s.Warned(CeilingBroken), "Power Ceiling on Scaled Cost's points")
+	s.AbilityPoints.Override(15, false, false)
+	Compute(s)
+	c.int(&s.Points, 0, "Ability points overridden to 15: the points 15 - 15")
+	c.ok(!s.Warned(CeilingBroken), "Power Ceiling 15 on the overridden Ability points")
+	s.AbilityPoints.Clear()
 	s.Options.PowerCeiling = false
 	s.Options.StartingLevels = false
 	s.Options.ScaledCost = false

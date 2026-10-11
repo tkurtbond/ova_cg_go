@@ -5,7 +5,8 @@ package ui
 //
 // ova_cg_po's PLAN.md, "The window": the Abilities and the Weaknesses
 // are each a list of lines ("+3 Attack (Kaze Satsujinsha)", and "p. 50"
-// at the right) with a Panel's controls. The same panel edits the
+// at the right; under Scaled Cost its points between, "4 pts") with a
+// Panel's controls. The same panel edits the
 // character's own (the window), a Transformation's form, and a
 // Companion's or Vehicle's (the linked dialog): its list is a sheet's
 // traits, or, given an owner, the owner's form.
@@ -38,7 +39,7 @@ type TraitPanel struct {
 // Ability, -1 to -3 for a Weakness.
 func newTraits(kind rules.Kind, title string, height float32, openPage func(int), tell func(string)) *TraitPanel {
 	p := &TraitPanel{tell: tell}
-	p.Panel = newPanel(p, kind, title, "level", "detail", height, openPage, 50)
+	p.Panel = newPanel(p, kind, title, "level", "detail", height, openPage, 50, 50)
 	if kind == rules.Ability {
 		p.Spinner.SetBounds(1, 5)
 		p.Spinner.SetValue(1)
@@ -67,7 +68,8 @@ func (p *TraitPanel) TraitAt(i int) *character.Trait {
 // SelectedTrait is the selected trait; nil for none.
 func (p *TraitPanel) SelectedTrait() *character.Trait { return p.TraitAt(p.Selected()) }
 
-// traitLine is t's line: "+2 Flight (on a broom)", and its page.
+// traitLine is t's line: "+2 Flight (on a broom)", its Scaled Cost
+// points ("2 pts", shown only under it), and its page.
 func traitLine(t *character.Trait) []string {
 	s := strconv.Itoa(t.Level)
 	if t.Level > 0 {
@@ -77,11 +79,23 @@ func traitLine(t *character.Trait) []string {
 	if t.HasDetail {
 		s += " (" + t.Detail + ")"
 	}
-	return []string{s, rules.PageText(t.Item)}
+	pts := strconv.Itoa(t.Points) + " pts"
+	if t.Points == 1 {
+		pts = "1 pt"
+	}
+	return []string{s, pts, rules.PageText(t.Item)}
+}
+
+// ShowsPoints says whether the lines show Scaled Cost's points: a
+// sheet's own traits under it, not a form's, which no total counts
+// (p. 63).
+func (p *TraitPanel) ShowsPoints() bool {
+	return p.sheet != nil && p.owner == nil && p.sheet.Options.ScaledCost
 }
 
 func (p *TraitPanel) fill() [][]string {
 	p.shown = nil
+	p.ShowColumn(0, p.ShowsPoints())
 	if p.sheet == nil {
 		return nil
 	}
@@ -178,7 +192,11 @@ func (p *TraitPanel) ListShown() bool {
 		return false
 	}
 	for i, w := range want {
-		if p.Line(i) != w[0]+"\t"+w[1] {
+		line := w[0] + "\t"
+		if p.ShowsPoints() {
+			line += w[1] + "\t"
+		}
+		if p.Line(i) != line+w[2] {
 			return false
 		}
 	}

@@ -11,13 +11,15 @@ import (
 
 	"github.com/tkurtbond/ova_cg_go/internal/character"
 	"github.com/tkurtbond/ova_cg_go/internal/prefs"
+	"github.com/tkurtbond/ova_cg_go/internal/rules"
 	"github.com/tkurtbond/ova_cg_go/internal/viewer"
 )
 
-// reds is which of the Abilities', the Total and the points are red:
-// "ATP" for all three, "-T-" for the Total alone.
+// reds is which of the Abilities' levels, the Total, the points and the
+// Abilities' points are red: "ATPa" for all four, "-T--" for the Total
+// alone.
 func reds(w *Window) string {
-	s := []byte("---")
+	s := []byte("----")
 	if w.Numbers[AbilityLevels].Red() {
 		s[0] = 'A'
 	}
@@ -27,6 +29,9 @@ func reds(w *Window) string {
 	if w.Numbers[Points].Red() {
 		s[2] = 'P'
 	}
+	if w.Numbers[AbilityPoints].Red() {
+		s[3] = 'a'
+	}
 	return string(s)
 }
 
@@ -35,6 +40,29 @@ func addAbility(w *Window, name string, level int) {
 	w.Abilities.Spinner.SetValue(level)
 	w.Abilities.Text.SetText("")
 	w.Abilities.Add.OnTapped()
+}
+
+func addWeakness(w *Window, name string, level int) {
+	w.Weaknesses.Pick(name)
+	w.Weaknesses.Spinner.SetValue(level)
+	w.Weaknesses.Text.SetText("")
+	w.Weaknesses.Add.OnTapped()
+}
+
+// lineListed says whether one of p's lines is head, a tab, points and a tab
+// if any are given, and name's page.
+func lineListed(p *TraitPanel, head, points, name string) bool {
+	want := head + "\t"
+	if points != "" {
+		want += points + "\t"
+	}
+	want += rules.PageText(rules.Find(name))
+	for i := 0; i < p.Count(); i++ {
+		if p.Line(i) == want {
+			return true
+		}
+	}
+	return false
 }
 
 func warned(w *Window, text string) bool { return w.Warnings.Find(text) >= 0 }
@@ -67,38 +95,45 @@ func TestLimits(t *testing.T) {
 	check(t, d.BaseZeroRange.Value() == 5 && d.Starting.Value() == 5 && d.Ceiling.Value() == 15 &&
 		d.BaseZeroRange.Disabled() && d.Ceiling.Disabled() && d.Starting.Disabled() && d.HalfCost.Disabled(),
 		"their numbers p. 21's example, inactive; half cost inactive with none of its rules")
-	check(t, c.Total.Value == 3 && reds(w) == "---" && !modified(w), "Attack +3: a total of 3, nothing red")
+	check(t, c.Total.Value == 3 && reds(w) == "----" && !modified(w), "Attack +3: a total of 3, nothing red")
 
 	turn(d.BaseZero, true)
 	check(t, c.Options.BaseZero && c.Options.BaseZeroRange == 5 && c.HasOptions && !d.BaseZeroRange.Disabled() &&
-		!d.HalfCost.Disabled() && modified(w) && strings.Contains(saved(w), "base-zero: 5") && reds(w) == "---",
+		!d.HalfCost.Disabled() && modified(w) && strings.Contains(saved(w), "base-zero: 5") && reds(w) == "----",
 		"Base Zero on: its range 5, saved, the title marked; 3 within it")
 	d.BaseZeroRange.Spin(2)
-	check(t, c.Options.BaseZeroRange == 2 && reds(w) == "-T-" && warned(w, "Base Zero") &&
+	check(t, c.Options.BaseZeroRange == 2 && reds(w) == "-T--" && warned(w, "Base Zero") &&
 		strings.Contains(saved(w), "base-zero: 2"), "range 2: the Total red, and the warning")
 	d.BaseZeroRange.Spin(3)
-	check(t, reds(w) == "---" && !warned(w, "Base Zero"), "range 3: not red")
+	check(t, reds(w) == "----" && !warned(w, "Base Zero"), "range 3: not red")
 	turn(d.ScaledCost, true)
-	check(t, c.Options.ScaledCost && c.Points.Value == 4 && w.Numbers[Points].Visible() && reds(w) == "--P" &&
+	check(t, c.Options.ScaledCost && c.Points.Value == 4 && w.Numbers[Points].Visible() && reds(w) == "--P-" &&
 		strings.Contains(saved(w), "scaled-cost: true"),
 		"Scaled Cost: 4 points, shown, beyond 3: the points red, not the Total")
+	check(t, c.AbilityPoints.Value == 4 && w.Numbers[AbilityPoints].Visible(), "and the Abilities' 4 points shown")
+	turn(d.PowerCeiling, true)
+	d.Ceiling.Spin(3)
+	check(t, reds(w) == "--Pa" && warned(w, "Power Ceiling"),
+		"Power Ceiling 3 on Scaled Cost: the Abilities' points red, not their levels")
+	d.Ceiling.Spin(15)
+	turn(d.PowerCeiling, false)
 	turn(d.ScaledCost, false)
 	turn(d.BaseZero, false)
 	check(t, !c.Options.BaseZero && d.BaseZeroRange.Disabled() && d.HalfCost.Disabled() &&
-		d.BaseZeroRange.Value() == 3 && reds(w) == "---" && !strings.Contains(saved(w), "base-zero"),
+		d.BaseZeroRange.Value() == 3 && reds(w) == "----" && !strings.Contains(saved(w), "base-zero"),
 		"Base Zero off: its number kept, inactive, not saved")
 
 	turn(d.PowerCeiling, true)
-	check(t, c.Options.PowerCeiling && c.Options.Ceiling == 15 && reds(w) == "---" &&
+	check(t, c.Options.PowerCeiling && c.Options.Ceiling == 15 && reds(w) == "----" &&
 		strings.Contains(saved(w), "power-ceiling: 15"), "Power Ceiling 15: 3 under it")
 	d.Ceiling.Spin(2)
-	check(t, reds(w) == "A--" && warned(w, "Power Ceiling"), "Power Ceiling 2: the Abilities red, and the warning")
+	check(t, reds(w) == "A---" && warned(w, "Power Ceiling"), "Power Ceiling 2: the Abilities red, and the warning")
 	turn(d.PowerCeiling, false)
 	turn(d.StartingLevels, true)
-	check(t, c.Options.StartingLevels && c.Options.Starting == 5 && reds(w) == "---" &&
+	check(t, c.Options.StartingLevels && c.Options.Starting == 5 && reds(w) == "----" &&
 		strings.Contains(saved(w), "starting-levels: 5"), "5 starting levels: 3 within them")
 	d.Starting.Spin(2)
-	check(t, reds(w) == "A--" && warned(w, "starting levels"), "2 starting levels: the Abilities red")
+	check(t, reds(w) == "A---" && warned(w, "starting levels"), "2 starting levels: the Abilities red")
 	turn(d.StartingLevels, false)
 
 	addAbility(w, "Knowledge", 3)
@@ -112,11 +147,20 @@ func TestLimits(t *testing.T) {
 	turn(d.Combined, true)
 	check(t, c.Options.CombinedEffectiveness && strings.Contains(saved(w), "combined-effectiveness: true"),
 		"Combined Effectiveness on, saved")
+	check(t, lineListed(w.Abilities, "+3 Attack", "", "Attack"), "no points in the lists without Scaled Cost")
+	turn(d.ScaledCost, true)
+	check(t, lineListed(w.Abilities, "+3 Attack", "4 pts", "Attack") && lineListed(w.Abilities, "+3 Knowledge", "2 pts", "Knowledge"),
+		"Scaled Cost: each Ability's points listed, Knowledge +3's halved")
+	addWeakness(w, "Weak", -1)
+	check(t, lineListed(w.Weaknesses, "-1 Weak", "1 pt", "Weak"), "and each Weakness's")
+	turn(d.ScaledCost, false)
+	check(t, lineListed(w.Abilities, "+3 Attack", "", "Attack") && lineListed(w.Weaknesses, "-1 Weak", "", "Weak"),
+		"Scaled Cost off: the points gone from the lists")
 
 	d.Cancel.OnTapped()
 	check(t, w.Settings == nil && !c.HasOptions && !c.Options.HalfCostKnowledge &&
 		!c.Options.CombinedEffectiveness && !c.Options.PowerCeiling && !strings.Contains(saved(w), "options:") &&
-		reds(w) == "---" && c.AbilityLevels.Value == 6 && !modified(w),
+		reds(w) == "----" && c.AbilityLevels.Value == 6 && !modified(w),
 		"Cancel: no limits again, nothing saved, the title unmarked")
 
 	d = fresh()
@@ -125,14 +169,14 @@ func TestLimits(t *testing.T) {
 	d.BaseZeroRange.Spin(1)
 	d.OK.OnTapped()
 	check(t, w.Settings == nil && c.Options.BaseZero && strings.Contains(saved(w), "base-zero: 1") && modified(w) &&
-		reds(w) == "-T-", "OK: kept, saved, the title marked, the Total red")
+		reds(w) == "-T--", "OK: kept, saved, the title marked, the Total red")
 	w.LimitsItem.Action()
 	d = w.Settings
 	check(t, d.BaseZero.Checked && d.BaseZeroRange.Value() == 1 && !d.BaseZeroRange.Disabled(),
 		"opened again: as left")
 	turn(d.BaseZero, false)
 	d.Cancel.OnTapped()
-	check(t, w.Settings == nil && c.Options.BaseZero && reds(w) == "-T-" && modified(w),
+	check(t, w.Settings == nil && c.Options.BaseZero && reds(w) == "-T--" && modified(w),
 		"Cancel: as before, the title still marked from before")
 
 	w.NewItem.Action()

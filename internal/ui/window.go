@@ -76,6 +76,7 @@ const (
 	Total
 	Points
 	Incorporeal
+	AbilityPoints
 	NSheetNumbers
 )
 
@@ -352,29 +353,33 @@ func (w *Window) showWarnings() {
 func (w *Window) pointNumbers() {
 	c := w.Character
 	for i, n := range []*calc.Number{&c.Defense, &c.Barrier, &c.Health, &c.Endurance, &c.Reserve, &c.TV,
-		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points, &c.Incorporeal} {
+		&c.AbilityLevels, &c.WeaknessLevels, &c.Total, &c.Points, &c.Incorporeal, &c.AbilityPoints} {
 		w.Numbers[i].Target = n
 	}
 }
 
 // showNumbers shows every number box again: Barrier's, Incorporeal
-// Form's and the Reserve's only when the character has them, Scaled Cost's points only under it.
-// A total a limit finds too high is red (p. 21): Base Zero's the
-// Character Total, or the points under Scaled Cost; a Power Ceiling's or
-// the starting levels' the Abilities'.
+// Form's and the Reserve's only when the character has them, Scaled
+// Cost's points (the Abilities' and the net) only under it. A total a
+// limit finds too high is red (p. 21): Base Zero's the Character Total,
+// or the net points under Scaled Cost; a Power Ceiling's or the starting
+// levels' the Abilities' levels, or their points under Scaled Cost.
 func (w *Window) showNumbers() {
 	c := w.Character
 	for _, b := range w.Numbers {
 		b.Display()
 	}
 	baseZero := c.Warned(calc.BaseZeroBroken)
-	w.Numbers[Total].SetRed(baseZero && !c.Options.ScaledCost)
-	w.Numbers[Points].SetRed(baseZero && c.Options.ScaledCost)
-	w.Numbers[AbilityLevels].SetRed(c.Warned(calc.CeilingBroken) || c.Warned(calc.StartingBroken))
+	spent := c.Warned(calc.CeilingBroken) || c.Warned(calc.StartingBroken)
+	scaled := c.Options.ScaledCost
+	w.Numbers[Total].SetRed(baseZero && !scaled)
+	w.Numbers[Points].SetRed(baseZero && scaled)
+	w.Numbers[AbilityLevels].SetRed(spent && !scaled)
+	w.Numbers[AbilityPoints].SetRed(spent && scaled)
 	visible(c.HasBarrier, w.Numbers[Barrier].Object())
 	visible(c.HasIncorporeal, w.Numbers[Incorporeal].Object())
 	visible(c.HasReserve, w.Numbers[Reserve].Object())
-	visible(c.Options.ScaledCost, w.Numbers[Points].Object())
+	visible(scaled, w.Numbers[AbilityPoints].Object(), w.Numbers[Points].Object())
 	for _, r := range w.Rows {
 		r.Roll.Display()
 		r.DX.Display()
@@ -677,8 +682,16 @@ func (w *Window) showNpcType() {
 
 // ---- The transformed form, and the limits ----
 
+// limitsChanged follows a change of the limits: changed, and the lists,
+// which show Scaled Cost's points only under it.
+func (w *Window) limitsChanged() {
+	w.changed()
+	w.Abilities.Refresh(w.Abilities.Selected())
+	w.Weaknesses.Refresh(w.Weaknesses.Selected())
+}
+
 // editLimits is Character > Limits...: the settings dialog, which tells
-// changed each change. Cancel puts the options back, and the title's
+// limitsChanged each change. Cancel puts the options back, and the title's
 // mark as it was.
 func (w *Window) editLimits() {
 	if w.Settings != nil {
@@ -958,7 +971,8 @@ func (w *Window) buildSheetTabs() (sheet, attacks fyne.CanvasObject) {
 			container.NewHBox(widget.NewLabel("NPC Type"), sized(w.NpcTypeIn, 160, 0)), w.TaglineIn))
 	totals := container.NewHBox(
 		w.sheetBox(AbilityLevels, "Abilities"), w.sheetBox(WeaknessLevels, "Weaknesses"),
-		w.sheetBox(Total, "Character Total"), w.sheetBox(Points, "Scaled Cost points"))
+		w.sheetBox(Total, "Character Total"), w.sheetBox(AbilityPoints, "Ability points"),
+		w.sheetBox(Points, "Scaled Cost points"))
 	// The trait lists take what height the window has beyond its least.
 	left := container.NewBorder(
 		names,

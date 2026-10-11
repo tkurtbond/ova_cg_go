@@ -218,6 +218,7 @@ own file in a temporary directory.
 | `FlLayout.Tabs` | `container.AppTabs` ("Character", "Attacks", "Background", "Fluff") |
 | the characters' `FlMenus.Choice` at the menu bar's right | a `widget.Select` over the tab bar's empty right end (`container.NewStack`): Fyne's main menu holds no widget |
 | `FlBrowsers.HoldBrowser` with a page column | `widget.List`, each row a name label and a right-hand page label |
+| a trait list's column widths set again for Scaled Cost's points | a points column always in the row, hidden (`lines.ShowColumn`) when not under Scaled Cost: a `widget.List` row's columns are made once, and the box layout skips a hidden one |
 | `FlMenus.Choice` of labels | `widget.Select` of `rules.Label`s |
 | `FlValuators.Spinner` | `ui.Spinner`: a bounded integer with `-` and `+` buttons (Fyne has none) |
 | `FlInputs.Input`, `MultilineInput` | `widget.Entry`, `widget.NewMultiLineEntry` |
