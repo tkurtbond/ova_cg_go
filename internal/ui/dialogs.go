@@ -145,6 +145,27 @@ func (w *Window) dialogPath(save bool, then func(string)) {
 	showChooser(d)
 }
 
+// dialogMarkdownPath asks where to save the Markdown sheet, suggesting
+// suggested.
+func (w *Window) dialogMarkdownPath(suggested string, then func(string)) {
+	d := dialog.NewFileSave(func(wc fyne.URIWriteCloser, err error) {
+		if wc == nil || err != nil {
+			then("")
+			return
+		}
+		p := wc.URI().Path()
+		wc.Close()
+		then(p)
+	}, w.Win)
+	d.SetTitleText("Save the Markdown sheet as")
+	if suggested != "" {
+		d.SetFileName(suggested)
+	}
+	d.SetFilter(storage.NewExtensionFileFilter([]string{".md"}))
+	w.startIn(d, w.Path)
+	showChooser(d)
+}
+
 // openChooser is a chooser of a file to read; then(path), "" for none.
 func (w *Window) openChooser(then func(string)) *dialog.FileDialog {
 	return dialog.NewFileOpen(func(rc fyne.URIReadCloser, err error) {

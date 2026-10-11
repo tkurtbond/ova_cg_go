@@ -47,13 +47,16 @@ internal/calc/              OvaCalc
 internal/entities/          OvaEntities (and what of OvaText it needs)
 internal/character/         OvaCharacter
 internal/save/              OvaSave
+internal/markdown/          OvaMarkdown, and the Markdown path of
+                            ova_fmt_po's OvaCommon
 internal/paths/             OvaPaths
 internal/spawn/             OvaSpawn (no C part: os/exec and /proc)
 internal/viewer/            OvaViewer
 internal/prefs/             the preferences file (FlPreferences' part)
 internal/ui/                OvaWidgets, OvaTraitPanel, OvaAttackDialog,
                             OvaLinkedDialog, OvaSettings, OvaBackground,
-                            OvaWindow: everything that imports Fyne
+                            OvaMarkdownTab, OvaWindow: everything that
+                            imports Fyne
 testdata/                   the fixtures, copied, kept the same
 test/                       files.sh, cli.sh, quit.sh, viewer.sh,
                             fake-viewer.sh, fake-gdbus.sh
@@ -155,6 +158,18 @@ or boolean (`age: "15"`) is quoted too. Numbers are plain scalars with
 no tag; the sheet's texts `4/5`, `1/2`, `10+` are plain too. A list of
 `overrides` is a flow sequence, as the fixtures write it. `TestFiles`'
 awkward-text case and `test/files.sh` check this.
+
+### markdown (OvaMarkdown, and OvaCommon's Markdown)
+
+ova_cg_po copies ova_fmt_po's `OvaCommon`, `OvaConfig` and `OvaOut` and
+formats with them; Go can't, so this package ports what of `OvaCommon`
+its Markdown format and its defaults use (the minus sign U+2212, no
+`-O`): `ProcessEntity` and the line formatters it calls, writing to a
+`strings.Builder` where `OvaOut` writes. `Sheet` is `save.ToEntity`'s
+entity formatted; `Save` writes through `NAME.tmp`, renamed, as
+`save.SaveAll` does. `test/files.sh` checks every fixture's sheet
+against `ova_fmt_po -M` of its saved copy, byte for byte, so a change
+to ova_fmt_po's Markdown shows there.
 
 ### paths (OvaPaths)
 
@@ -415,6 +430,24 @@ test-headless` for the program itself) and its entry here marked
      Fourteen bugs planted: thirteen failed them; the fourteenth, the
      Select's `filling` guard taken out, can't be seen, since the index
      it sets is always `Current`, which choosing ignores.
+
+14. **The Markdown sheet** (ova_cg_po's Phase 14). [done]
+   - `save.ToEntity` (`Copy`'s first half); the `markdown` package
+     (above); `ui.MarkdownView`, the fifth tab: a selectable, monospaced
+     `widget.Label` in a scroll, Copy (`App.Clipboard`) and Save
+     Markdown... (`Window.ChooseMarkdownPath`, a Fyne save dialog
+     filtered to `.md`, suggesting the character's name); shown again
+     after every change (`changed`, `textChanged`, `showAll`).
+   - `markdown_test` ports `TestFiles`' Markdown checks (each fixture's
+     sheet saved as `obj/files/NAME.md`; `Save` failing, then working);
+     `files.sh` compares each with `ova_fmt_po -M` (54 checks, all
+     equal at the first run); `ui`'s `markdown_test` ports
+     `TestMarkdown`; `window_test` counts five tabs.
+   - Bugs planted: ASCII minus (49 of files.sh's), no refresh after
+     typing (2), Copy putting a fragment (1), no rename after writing
+     (54 of files.sh's, and `TestSave`'s 2): each failed.
+   - Screenshot under Xvfb (Ai): the tab beside the characters' Select,
+     its buttons, and the sheet.
 
 `make test-viewers` and `make check-pages` were not run in the port's
 session: they need the real viewers and the rulebook's PDF. Run them

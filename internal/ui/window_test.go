@@ -29,17 +29,19 @@ const (
 
 // fakes is what answers for the user.
 type fakes struct {
-	t           *testing.T
-	tells       int    // how many messages were shown
-	told        string // the last
-	answer      Answer // what Ask answers,
-	asked       int    // and how often it was asked
-	question    string // what Ask or Confirm asked last
-	yes         bool   // what Confirm answers,
-	confirmed   int    // and how often it was asked
-	chosen      string // what ChoosePath answers; "": cancelled
-	chosenImage string // what ChooseImage answers
-	page        int    // the last page OpenPage was asked for
+	t            *testing.T
+	tells        int    // how many messages were shown
+	told         string // the last
+	answer       Answer // what Ask answers,
+	asked        int    // and how often it was asked
+	question     string // what Ask or Confirm asked last
+	yes          bool   // what Confirm answers,
+	confirmed    int    // and how often it was asked
+	chosen       string // what ChoosePath answers; "": cancelled
+	chosenImage  string // what ChooseImage answers
+	page         int    // the last page OpenPage was asked for
+	markdownAsks int    // how often ChooseMarkdownPath was asked,
+	suggested    string // and what it suggested last
 }
 
 func newWindow(t *testing.T) (*Window, *fakes) {
@@ -55,6 +57,11 @@ func newWindow(t *testing.T) (*Window, *fakes) {
 	w.Confirm = func(q, yes string, then func(bool)) { f.confirmed++; f.question = q; then(f.yes) }
 	w.ChoosePath = func(save bool, then func(string)) { then(f.chosen) }
 	w.ChooseImage = func(then func(string)) { then(f.chosenImage) }
+	w.ChooseMarkdownPath = func(suggested string, then func(string)) {
+		f.markdownAsks++
+		f.suggested = suggested
+		then(f.chosen)
+	}
 	w.ChoosePdf = func(then func(string)) { then("") }
 	w.AskText = func(prompt, text string, then func(string, bool)) { then("", false) }
 	w.OpenPage = func(p int) { f.page = p }
@@ -154,10 +161,10 @@ func TestWindow(t *testing.T) {
 		"and New, Open, Save, Save As, and Rulebook > Open")
 	check(t, w.Tabs.Selected() == w.SheetTab, "the Character tab is shown first")
 	check(t, w.Win.Canvas().Size().Width == Width && Width == 640 && w.Win.Content().MinSize().Width <= Width &&
-		len(w.Tabs.Items) == 4 &&
+		len(w.Tabs.Items) == 5 &&
 		w.Tabs.Items[0] == w.SheetTab && w.Tabs.Items[1] == w.AttacksTab &&
-		w.Tabs.Items[2] == w.BackgroundTab && w.Tabs.Items[3] == w.FluffTab,
-		"640 wide, beside the viewer: Character, Attacks, Background and Fluff, in that order")
+		w.Tabs.Items[2] == w.BackgroundTab && w.Tabs.Items[3] == w.FluffTab && w.Tabs.Items[4] == w.MarkdownTab,
+		"640 wide, beside the viewer: Character, Attacks, Background, Fluff and Markdown, in that order")
 	check(t, holds(w.AttacksTab.Content, w.AddAttack) && !holds(w.SheetTab.Content, w.AddAttack) &&
 		holds(w.FluffTab.Content, w.Background.Portrait) && !holds(w.BackgroundTab.Content, w.Background.Portrait),
 		"the attacks on the Attacks tab, the portrait on the Fluff tab")

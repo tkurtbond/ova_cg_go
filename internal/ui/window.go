@@ -114,6 +114,7 @@ type Window struct {
 	RulebookItem, ChoosePdfItem, ViewerItem       *fyne.MenuItem
 	Tabs                                          *container.AppTabs
 	SheetTab, AttacksTab, BackgroundTab, FluffTab *container.TabItem
+	MarkdownTab                                   *container.TabItem
 	NameIn, PlayerIn, TaglineIn                   *widget.Entry
 	// The NPC type: item 0 none, then entities.Heroic, Secondary, Extra,
 	// each at its constant + 1.
@@ -129,6 +130,7 @@ type Window struct {
 	rowBox                *fyne.Container
 	AddAttack             *widget.Button
 	Background            *Background
+	Markdown              *MarkdownView
 	Attack                *AttackDialog   // nil when closed
 	Linked                *LinkedDialog   // nil when closed
 	Settings              *SettingsDialog // nil when closed
@@ -146,8 +148,10 @@ type Window struct {
 	// message; Ask asks whether to save first; ChoosePath asks for a
 	// file to open, or to save to if save ("": cancelled); ChoosePdf for
 	// the rulebook's PDF; AskText for a line of text, showing text as it
-	// is (ok false: cancelled); ChooseImage for a portrait; OpenPage
-	// opens the rulebook at a printed page.
+	// is (ok false: cancelled); ChooseImage for a portrait;
+	// ChooseMarkdownPath for a file to save the Markdown sheet to,
+	// suggesting suggested ("": nothing); OpenPage opens the rulebook at
+	// a printed page.
 	Tell    func(text string)
 	Ask     func(question string, answer func(Answer))
 	Confirm func(question, yes string, then func(ok bool)) // yes names the button that does it
@@ -156,7 +160,9 @@ type Window struct {
 	ChoosePdf   func(then func(path string))
 	AskText     func(prompt, text string, then func(text string, ok bool))
 	ChooseImage func(then func(path string))
-	OpenPage    func(page int)
+
+	ChooseMarkdownPath func(suggested string, then func(path string))
+	OpenPage           func(page int)
 
 	// The rulebook: --rulebook's path, or the one chosen this run ("":
 	// none), and the one saved in the preferences.
@@ -396,12 +402,14 @@ func (w *Window) changed() {
 	w.Modified = true
 	w.showTitle()
 	w.showNumbers()
+	w.Markdown.Show(w.Character)
 }
 
 // textChanged follows a change of text alone: nothing to compute.
 func (w *Window) textChanged() {
 	w.Modified = true
 	w.showTitle()
+	w.Markdown.Show(w.Character)
 }
 
 // numberChanged follows a number box's text taken; refused text is said
@@ -743,6 +751,7 @@ func (w *Window) showAll() {
 	w.Background.Show(c, dir)
 	w.showCharacters()
 	w.showTitle()
+	w.Markdown.Show(c)
 }
 
 // ---- Files ----
@@ -1019,17 +1028,20 @@ func New(a fyne.App) *Window {
 	w.ChoosePdf = w.dialogPdf
 	w.AskText = w.dialogText
 	w.ChooseImage = w.dialogImage
+	w.ChooseMarkdownPath = w.dialogMarkdownPath
 	w.OpenPage = w.openRulebook
 	w.Viewer = viewer.Default()
 	w.buildMenu()
 	w.Win.SetMainMenu(w.Menu)
 	w.Background = newBackground(w)
+	w.Markdown = newMarkdownView(w)
 	sheet, attacks := w.buildSheetTabs()
 	w.SheetTab = container.NewTabItem("Character", sheet)
 	w.AttacksTab = container.NewTabItem("Attacks", attacks)
 	w.BackgroundTab = container.NewTabItem("Background", w.Background.object)
 	w.FluffTab = container.NewTabItem("Fluff", w.Background.fluff)
-	w.Tabs = container.NewAppTabs(w.SheetTab, w.AttacksTab, w.BackgroundTab, w.FluffTab)
+	w.MarkdownTab = container.NewTabItem("Markdown", w.Markdown.object)
+	w.Tabs = container.NewAppTabs(w.SheetTab, w.AttacksTab, w.BackgroundTab, w.FluffTab, w.MarkdownTab)
 	// The characters' Select over the tab bar's empty right end: Fyne's
 	// main menu holds no widget, as ova_cg_po's menu bar does its Choice.
 	w.CharacterIn = widget.NewSelect(nil, func(string) { w.characterChosen() })

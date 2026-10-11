@@ -427,11 +427,10 @@ func SaveAll(cs []*character.Character, path string) error {
 // Save writes c alone, as SaveAll.
 func Save(c *character.Character, path string) error { return SaveAll(character.One(c), path) }
 
-// Copy is a copy of c, sharing nothing with it: c as it would be saved,
-// read back as a file's character is. A saved character reads back with
-// no notices, so the copy's numbers are c's. nil if c's YAML couldn't be
-// read (a programmer's error).
-func Copy(c *character.Character) *character.Character {
+// ToEntity is c as it would be saved, read back as ova_fmt_po reads a
+// file's entity; nil if c's YAML couldn't be read (a programmer's
+// error).
+func ToEntity(c *character.Character) *entities.Entity {
 	b, err := encode(character.One(c))
 	if err != nil {
 		return nil
@@ -443,6 +442,17 @@ func Copy(c *character.Character) *character.Character {
 	var l entities.Loader
 	e, err := l.Load(doc.Content[0].Content[0], 0)
 	if err != nil || len(l.Errors) > 0 {
+		return nil
+	}
+	return e
+}
+
+// Copy is a copy of c, sharing nothing with it: ToEntity's, made a
+// character as a file's is. A saved character reads back with no
+// notices, so the copy's numbers are c's. nil as ToEntity.
+func Copy(c *character.Character) *character.Character {
+	e := ToEntity(c)
+	if e == nil {
 		return nil
 	}
 	copy, _ := character.FromEntity(e)
