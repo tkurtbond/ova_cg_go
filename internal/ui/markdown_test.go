@@ -4,8 +4,10 @@ package ui
 // the character shown, after every kind of change (a name typed, an
 // Ability added, Background text typed, a file opened); Copy puts it on
 // the clipboard; Save Markdown... writes it where the chooser says,
-// suggesting the character's name, and says why when it can't. That the
-// sheet is ova_fmt_po -M's is test/files.sh's.
+// suggesting the character's name, and says why when it can't; Inline,
+// checked, shows the inline paragraph instead, kept current too, and
+// saves it as NAME-inline.md. That the sheet is ova_fmt_po -M's, and the
+// paragraph its -i's, is test/files.sh's.
 
 import (
 	"os"
@@ -19,6 +21,12 @@ import (
 // shown, as the markdown package makes it.
 func markdownShown(w *Window) bool {
 	want := markdown.Sheet(w.Character)
+	return want != "" && w.Markdown.Sheet == want && w.Markdown.Text.Text == want
+}
+
+// inlineShown says the same of its inline paragraph.
+func inlineShown(w *Window) bool {
+	want := markdown.Inline(w.Character)
 	return want != "" && w.Markdown.Sheet == want && w.Markdown.Text.Text == want
 }
 
@@ -70,4 +78,21 @@ func TestMarkdown(t *testing.T) {
 	w.Markdown.Save.OnTapped()
 	b, err = os.ReadFile(savePath)
 	check(t, f.suggested == "" && err == nil && string(b) == sheet(), "a character with no name: nothing suggested, the sheet saved")
+
+	// ---- Inline ----
+	ok = w.Load(dataDir + "Ai.yaml")
+	check(t, ok && !w.Markdown.Inline.Checked && markdownShown(w), "Inline starts unchecked: the sheet")
+	w.Markdown.Inline.SetChecked(true)
+	check(t, inlineShown(w) && strings.Contains(sheet(), "**Ai.** An amnesiac") && !strings.Contains(sheet(), "# Ai"),
+		"Inline checked: the inline paragraph")
+	w.NameIn.SetText("Aiko")
+	check(t, inlineShown(w) && strings.Contains(sheet(), "**Aiko.**"), "Inline: kept current")
+	os.Remove(savePath)
+	f.chosen = savePath
+	w.Markdown.Save.OnTapped()
+	b, err = os.ReadFile(savePath)
+	check(t, f.suggested == "Aiko-inline.md" && err == nil && string(b) == sheet(),
+		"Inline: Save Markdown... suggests NAME-inline.md, saves the paragraph")
+	w.Markdown.Inline.SetChecked(false)
+	check(t, markdownShown(w) && strings.Contains(sheet(), "# Aiko"), "Inline unchecked: the sheet again")
 }

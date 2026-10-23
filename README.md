@@ -188,6 +188,13 @@ elsewhere; **Save Markdown...** writes it to a file (it suggests the
 character's name, with `.md`). Saving the sheet doesn't save the
 character.
 
+Check **Inline** to see the character instead as one paragraph, as an
+adventure's cast lists it, the same text `ova_fmt_po -i` makes: the
+bold name and NPC type, the prose run together, the Abilities and
+Weaknesses in italics as "Attack +2 (Blaster rifle)", then the attacks
+and the combat numbers, filled to 70 columns. Copy and Save Markdown...
+then take the paragraph (Save suggests `NAME-inline.md`).
+
 ### The rulebook
 
 The program holds no rules text. Every name shows its page in the

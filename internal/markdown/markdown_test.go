@@ -1,9 +1,10 @@
 package markdown
 
 // ova_cg_po's TestFiles' Markdown checks: each fixture's sheet, one
-// character's after another, saved as ../../obj/files/NAME.md, which
-// test/files.sh compares with ova_fmt_po -M's of the copy internal/save's
-// test saves beside it; and Save failing, then working.
+// character's after another, saved as ../../obj/files/NAME.md, and its
+// inline paragraphs as NAME.inline.md, which test/files.sh compares with
+// ova_fmt_po -M's and -i's of the copy internal/save's test saves beside
+// them; and Save failing, then working.
 
 import (
 	"os"
@@ -44,18 +45,24 @@ func TestFixtures(t *testing.T) {
 			if err != nil {
 				t.Fatalf("loaded: %v", err)
 			}
-			var sheet strings.Builder
+			var sheet, inline strings.Builder
 			for _, c := range cs {
 				s := Sheet(c)
 				if s == "" {
 					t.Fatalf("%s: no sheet", c.Name)
 				}
 				sheet.WriteString(s)
+				inline.WriteString(Inline(c))
 			}
 			md := savedDir + name + ".md"
 			os.Remove(md) // so files.sh never compares a file from before
 			if err := Save(sheet.String(), md); err != nil {
 				t.Errorf("its Markdown sheet saved: %v", err)
+			}
+			md = savedDir + name + ".inline.md"
+			os.Remove(md)
+			if err := Save(inline.String(), md); err != nil {
+				t.Errorf("its inline paragraphs saved: %v", err)
 			}
 		})
 	}

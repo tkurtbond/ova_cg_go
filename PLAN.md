@@ -47,8 +47,8 @@ internal/calc/              OvaCalc
 internal/entities/          OvaEntities (and what of OvaText it needs)
 internal/character/         OvaCharacter
 internal/save/              OvaSave
-internal/markdown/          OvaMarkdown, and the Markdown path of
-                            ova_fmt_po's OvaCommon
+internal/markdown/          OvaMarkdown, the Markdown path of
+                            ova_fmt_po's OvaCommon, and its OvaInline
 internal/paths/             OvaPaths
 internal/spawn/             OvaSpawn (no C part: os/exec and /proc)
 internal/viewer/            OvaViewer
@@ -170,6 +170,15 @@ entity formatted; `Save` writes through `NAME.tmp`, renamed, as
 `save.SaveAll` does. `test/files.sh` checks every fixture's sheet
 against `ova_fmt_po -M` of its saved copy, byte for byte, so a change
 to ova_fmt_po's Markdown shows there.
+
+`Inline` (`inline.go`) ports ova_fmt_po's `OvaInline`, its inline
+format (`-i`): each entity one paragraph, a stat block for an
+adventure's cast list, filled to 70 columns counting characters, never
+breaking a line before a word that would open a Markdown block. It
+reuses the package's per-item formatters (the NPC Fragment order,
+"Attack +2 (detail)", for every Ability and Weakness). `files.sh`
+checks each fixture's paragraphs against `ova_fmt_po -i`, byte for
+byte, too.
 
 ### paths (OvaPaths)
 
@@ -448,6 +457,24 @@ test-headless` for the program itself) and its entry here marked
      (54 of files.sh's, and `TestSave`'s 2): each failed.
    - Screenshot under Xvfb (Ai): the tab beside the characters' Select,
      its buttons, and the sheet.
+
+15. **The inline paragraph** (ova_cg_po's Inline check, after
+    ova_fmt_po gained `-i`). [done]
+   - `markdown.Inline` (above); `ui.MarkdownView`'s Inline
+     `widget.Check` beside Save Markdown...: checked, `Show` shows the
+     inline paragraph; toggling shows the character again; Save
+     suggests `NAME-inline.md`. No tooltip, as ova_cg_po has, since
+     Fyne has none.
+   - `markdown_test` saves each fixture's paragraphs as
+     `obj/files/NAME.inline.md`; `files.sh` compares each with
+     `ova_fmt_po -i` (54 checks), and checks `-i` in its round trip
+     (53 more; marks taken out of filled paragraphs by joining each
+     onto one line first, `unmark_inline`): all equal at the first
+     run. `ui`'s `TestMarkdown` gains ova_cg_po's five Inline checks,
+     with the same labels.
+   - Bugs planted: width 80 (52 of files.sh's), `opensBlock` always
+     false (files.sh's), no refresh on toggling (`TestMarkdown`), the
+     suggestion `NAME.md` when inline (`TestMarkdown`): each failed.
 
 `make test-viewers` and `make check-pages` were not run in the port's
 session: they need the real viewers and the rulebook's PDF. Run them

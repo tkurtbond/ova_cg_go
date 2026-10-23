@@ -5,9 +5,10 @@ package ui
 //
 // The sheet the markdown package makes, shown as text the user can
 // select, with Copy, which puts all of it on the clipboard, and Save
-// Markdown..., which writes it to a file. The window shows the character
-// here again after each change (Show), so the text is always the
-// character's.
+// Markdown..., which writes it to a file. Inline, checked, shows the
+// inline paragraph instead (markdown.Inline), as an adventure's cast
+// lists the character. The window shows the character here again after
+// each change (Show), so the text is always the character's.
 
 import (
 	"fyne.io/fyne/v2"
@@ -25,7 +26,8 @@ type MarkdownView struct {
 	Sheet      string        // the text shown
 	Text       *widget.Label // selectable, monospaced
 	Copy, Save *widget.Button
-	name       string // the character's, for the file chooser's suggestion
+	Inline     *widget.Check // checked: the inline paragraph
+	name       string        // the character's, for the file chooser's suggestion
 	object     fyne.CanvasObject
 }
 
@@ -36,14 +38,20 @@ func newMarkdownView(w *Window) *MarkdownView {
 	m.Text.Selectable = true
 	m.Copy = widget.NewButton("Copy", m.copy)
 	m.Save = widget.NewButton("Save Markdown...", m.save)
-	m.object = container.NewBorder(container.NewHBox(m.Copy, m.Save, layout.NewSpacer()), nil, nil, nil,
+	// The character shown again, the other way.
+	m.Inline = widget.NewCheck("Inline", func(bool) { m.Show(m.w.Character) })
+	m.object = container.NewBorder(container.NewHBox(m.Copy, m.Save, m.Inline, layout.NewSpacer()), nil, nil, nil,
 		container.NewVScroll(m.Text))
 	return m
 }
 
-// Show shows c's sheet.
+// Show shows c's sheet, or its inline paragraph if Inline is checked.
 func (m *MarkdownView) Show(c *character.Character) {
-	m.Sheet = markdown.Sheet(c)
+	if m.Inline.Checked {
+		m.Sheet = markdown.Inline(c)
+	} else {
+		m.Sheet = markdown.Sheet(c)
+	}
 	m.name = c.Name
 	m.Text.SetText(m.Sheet)
 }
@@ -52,10 +60,13 @@ func (m *MarkdownView) Show(c *character.Character) {
 func (m *MarkdownView) copy() { m.w.App.Clipboard().SetContent(m.Sheet) }
 
 // save is Save Markdown...: the sheet in a file the user chooses, the
-// character's name suggested.
+// character's name suggested: NAME.md, or NAME-inline.md for the inline
+// paragraph.
 func (m *MarkdownView) save() {
 	suggested := ""
-	if m.name != "" {
+	if m.name != "" && m.Inline.Checked {
+		suggested = m.name + "-inline.md"
+	} else if m.name != "" {
 		suggested = m.name + ".md"
 	}
 	sheet := m.Sheet
