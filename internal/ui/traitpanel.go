@@ -99,6 +99,7 @@ func (p *TraitPanel) fill() [][]string {
 	if p.sheet == nil {
 		return nil
 	}
+	p.OfferBoss(p.offersBoss())
 	var rows [][]string
 	for _, t := range *p.list() {
 		if t.Kind == p.Kind {
@@ -138,7 +139,22 @@ func (p *TraitPanel) load(i int) {
 	p.selectTrait(t)
 }
 
-func (p *TraitPanel) chosen() { p.helpChosen() }
+// chosen: a Boss Ability has no level of its own (ova_cg_po's PLAN.md,
+// "Boss NPCs"), so its spinner is 1 and off.
+func (p *TraitPanel) chosen() {
+	p.helpChosen()
+	if p.Item().Has(rules.BossOnly) {
+		p.Spinner.SetValue(1)
+		p.Spinner.Disable()
+	} else {
+		p.Spinner.Enable()
+	}
+}
+
+// offersBoss says whether the list is a Boss's own Abilities.
+func (p *TraitPanel) offersBoss() bool {
+	return p.Kind == rules.Ability && p.sheet != nil && p.owner == nil && p.sheet.Kind == calc.BossSheet
+}
 
 func (p *TraitPanel) add() int {
 	it := p.Item()

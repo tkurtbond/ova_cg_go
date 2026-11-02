@@ -68,6 +68,7 @@ const (
 	CastsWeaknesses // its spells cast Weaknesses, -1 to -3, at Arcane's costs: Witchcraft (p. 58)
 	ThirdDefense    // another alternate Defense Roll, 2 + its level, written after
 	//                 Barrier's: Incorporeal Form, its dice as the Defense Roll (p. 55)
+	BossOnly // a Boss Ability: +5 TV (p. 124), no level in the totals (p. 123)
 )
 
 // What a Perk or Flaw does to an attack's numbers, after the Abilities'
@@ -127,9 +128,9 @@ const (
 	HealthEndurancePage = 107
 	ThreatValuePage     = 124
 	HalfCostPage        = 57 // Knowledge, half cost
-	// Where the NPC types, Heroic, Secondary and Extra (ova_fmt's
-	// npc-type:), are described: their Health and Endurance; TV's step
-	// for them is on p. 124.
+	// Where the NPC types, Heroic, Secondary, Extra and Boss (ova_fmt's
+	// npc-type:), and the Boss Abilities are described: their Health and
+	// Endurance; TV's step for them is on p. 124.
 	NpcTypesPage = 123
 )
 
@@ -151,8 +152,11 @@ type Item struct {
 func (it *Item) Has(f Flag) bool { return it != nil && it.Flags.Has(f) }
 
 var (
-	items   []*Item
-	byKind  [4][]*Item
+	items  []*Item
+	byKind [4][]*Item
+	// The Boss Abilities: of kind Ability, but not in byKind, so that
+	// only a Boss's list offers them.
+	boss    []*Item
 	aliases = map[string]*Item{} // folded alias -> item
 	// spellCost[magic-1][ability-1]
 	spellCost = [5][5]int{
@@ -194,6 +198,14 @@ func rangeFlaw(name string, page, min, max int) {
 
 func unique(name string, kind Kind, page int) {
 	add(name, kind, page, 0).CostKind = UserCost
+}
+
+// b is a Boss Ability: an Ability, kept out of the kind's order (Count,
+// Get).
+func b(name string) {
+	it := &Item{Name: name, Kind: Ability, Page: NpcTypesPage, Flags: flags(BossOnly), MaxTimes: 1}
+	items = append(items, it)
+	boss = append(boss, it)
 }
 
 func alias(alias, name string) {
@@ -389,6 +401,12 @@ func init() {
 
 	alias("Vehicle", "Vehicle (Mecha)")
 	alias("Ranged, Str.-Powered", "Ranged, Strength-Powered") // the Quick List's (p. 90)
+
+	// In the book's order (p. 123).
+	b("Health Reserve")
+	b("Extra Actions")
+	b("Scale Advantage")
+	b("Escape Plan")
 }
 
 // fold is s in lower case, ASCII only: names are ASCII.
@@ -408,7 +426,47 @@ func Count(k Kind) int { return len(byKind[k]) }
 // Get is the i'th item of a kind, 0 <= i < Count(k), in the book's order.
 func Get(k Kind, i int) *Item { return byKind[k][i] }
 
-// Index is it's place in its kind's order; -1 for nil.
+// BossCount is how many Boss Abilities there are.
+func BossCount() int { return len(boss) }
+
+// GetBoss is the i'th Boss Ability, 0 <= i < BossCount(), in the book's
+// order.
+func GetBoss(i int) *Item { return boss[i] }
+
+// OfferCount is how many names a list of kind k offers: with withBoss, a
+// list of Abilities offers the Boss Abilities too, at its end.
+func OfferCount(k Kind, withBoss bool) int {
+	if withBoss && k == Ability {
+		return Count(k) + BossCount()
+	}
+	return Count(k)
+}
+
+// Offered is the i'th name such a list offers, 0 <= i < OfferCount(k,
+// withBoss).
+func Offered(k Kind, i int, withBoss bool) *Item {
+	if i < Count(k) {
+		return Get(k, i)
+	}
+	if !withBoss || k != Ability {
+		panic("rules.Offered: no such name")
+	}
+	return GetBoss(i - Count(k))
+}
+
+// OfferIndex is it's place in such a list; -1 if the list doesn't offer
+// it.
+func OfferIndex(it *Item, k Kind, withBoss bool) int {
+	for i := range OfferCount(k, withBoss) {
+		if Offered(k, i, withBoss) == it {
+			return i
+		}
+	}
+	return -1
+}
+
+// Index is it's place in its kind's order; -1 for nil, or a Boss
+// Ability, which isn't in it.
 func Index(it *Item) int {
 	if it == nil {
 		return -1

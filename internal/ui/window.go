@@ -117,7 +117,7 @@ type Window struct {
 	MarkdownTab                                   *container.TabItem
 	NameIn, PlayerIn, TaglineIn                   *widget.Entry
 	// The NPC type: item 0 none, then entities.Heroic, Secondary, Extra,
-	// each at its constant + 1.
+	// Boss, each at its constant + 1.
 	NpcTypeIn             *widget.Select
 	Abilities, Weaknesses *TraitPanel
 	AbilityEnd            *NumberBox     // the chosen Ability's END
@@ -342,6 +342,8 @@ func warningText(wn *calc.Warning) string {
 			r += "DEFENSE: "
 		}
 		r += "Abilities give the roll more than +5 (p. 21)"
+	case calc.NotBoss:
+		r += ": only a Boss has Boss Abilities (p. 123)"
 	}
 	return r
 }
@@ -660,7 +662,7 @@ func (w *Window) stepCharacter(d int) {
 // its page.
 func npcTypeLabels() []string {
 	l := []string{"none"}
-	for k := entities.Heroic; k <= entities.Extra; k++ {
+	for k := entities.Heroic; k <= entities.Boss; k++ {
 		l = append(l, rules.PageLabel(entities.NpcTypeName(k), rules.NpcTypesPage))
 	}
 	return l
@@ -678,6 +680,7 @@ func (w *Window) npcTypeChosen() {
 		character.SetNpcType(w.Character, true, entities.NpcType(i-1))
 	}
 	w.changed()
+	w.Abilities.Refresh(w.Abilities.Selected()) // a Boss's offer the Boss Abilities too
 }
 
 func (w *Window) showNpcType() {

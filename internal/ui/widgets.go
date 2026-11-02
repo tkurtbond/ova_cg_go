@@ -496,9 +496,15 @@ type panelHooks interface {
 	chosen()
 }
 
+// BossDivider is the row of a Panel's Select between its kind's names and
+// the Boss Abilities: a Select has no divider of its own, so it is a row
+// that can't stay chosen.
+const BossDivider = "── Boss Abilities ──"
+
 // Panel is a list and its editor.
 type Panel struct {
 	Kind                rules.Kind // the Select's
+	WithBoss            bool       // the Select offers the Boss Abilities too
 	*lines                         // the list
 	Choice              *widget.Select
 	Spinner             *Spinner
@@ -516,12 +522,12 @@ func newPanel(hooks panelHooks, kind rules.Kind, title, spinLabel, textLabel str
 	p := &Panel{Kind: kind, hooks: hooks}
 	p.lines = newLines(widths...)
 	p.lines.OnSelect = func(i int) { p.hooks.load(i) }
-	labels := make([]string, rules.Count(kind))
-	for i := range labels {
-		labels[i] = rules.Label(rules.Get(kind, i))
-	}
-	p.Choice = widget.NewSelect(labels, func(string) {
-		if !p.choosing {
+	p.Choice = widget.NewSelect(p.labels(), func(string) {
+		switch {
+		case p.choosing:
+		case p.onDivider():
+			p.Choose(nil)
+		default:
 			p.hooks.chosen()
 		}
 	})
@@ -544,16 +550,52 @@ func newPanel(hooks panelHooks, kind rules.Kind, title, spinLabel, textLabel str
 	return p
 }
 
+// labels is the Select's rows: the names p offers, each with its page;
+// BossDivider before the Boss Abilities, if WithBoss.
+func (p *Panel) labels() []string {
+	var l []string
+	for i := range rules.OfferCount(p.Kind, p.WithBoss) {
+		if p.WithBoss && i == rules.Count(p.Kind) {
+			l = append(l, BossDivider)
+		}
+		l = append(l, rules.Label(rules.Offered(p.Kind, i, p.WithBoss)))
+	}
+	return l
+}
+
+// onDivider says whether the Select's chosen row is BossDivider.
+func (p *Panel) onDivider() bool {
+	return p.WithBoss && p.Choice.SelectedIndex() == rules.Count(p.Kind)
+}
+
+// OfferBoss offers the Boss Abilities, or stops: what is chosen stays,
+// if it still can.
+func (p *Panel) OfferBoss(on bool) {
+	if on == p.WithBoss {
+		return
+	}
+	it := p.Item()
+	p.WithBoss = on
+	p.Choice.SetOptions(p.labels())
+	p.Choose(it)
+}
+
 // Object is what the panel is laid out as.
 func (p *Panel) Object() fyne.CanvasObject { return p.object }
 
 // Item is the name chosen; nil for none.
 func (p *Panel) Item() *rules.Item {
 	i := p.Choice.SelectedIndex()
-	if i < 0 || i >= rules.Count(p.Kind) {
+	if p.onDivider() {
 		return nil
 	}
-	return rules.Get(p.Kind, i)
+	if p.WithBoss && i > rules.Count(p.Kind) {
+		i-- // past BossDivider
+	}
+	if i < 0 || i >= rules.OfferCount(p.Kind, p.WithBoss) {
+		return nil
+	}
+	return rules.Offered(p.Kind, i, p.WithBoss)
 }
 
 // helpChosen turns the ? button to the chosen name's page.
@@ -564,13 +606,16 @@ func (p *Panel) helpChosen() {
 	}
 }
 
-// Choose chooses it in the Select (none for nil, or an item not of the
-// panel's kind), and follows it as the user's choice is followed.
+// Choose chooses it in the Select (none for nil, or an item the Select
+// doesn't offer), and follows it as the user's choice is followed.
 func (p *Panel) Choose(it *rules.Item) {
 	p.choosing = true
 	defer func() { p.choosing = false }()
-	if it != nil && it.Kind == p.Kind {
-		p.Choice.SetSelectedIndex(rules.Index(it))
+	if i := rules.OfferIndex(it, p.Kind, p.WithBoss); i >= 0 {
+		if i >= rules.Count(p.Kind) {
+			i++ // past BossDivider
+		}
+		p.Choice.SetSelectedIndex(i)
 	} else {
 		p.Choice.ClearSelected()
 	}

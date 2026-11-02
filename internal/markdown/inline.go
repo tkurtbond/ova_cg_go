@@ -219,8 +219,11 @@ func countText(n int) string {
 // npcTypePlural is e's NPC type's plural, as a count of them has it:
 // "Secondaries".
 func npcTypePlural(e *entities.Entity) string {
-	if e.NpcType == entities.Secondary {
+	switch e.NpcType {
+	case entities.Secondary:
 		return "Secondaries"
+	case entities.Boss:
+		return "Bosses"
 	}
 	return npcTypeText(e) + "s"
 }

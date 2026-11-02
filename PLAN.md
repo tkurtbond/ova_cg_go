@@ -339,6 +339,12 @@ anything. While the window fills its widgets from the character
   notices) check it, and that a count of 0 is an error, since this repo
   has no golden files for errors.
 
+- **A Boss's list has a divider row.** ova_cg_po's divider is a flag on
+  a menu item, and Fyne's `Select` has none, so `ui.BossDivider` is a row
+  of its own, between the Abilities and the Boss Abilities, and choosing
+  it clears the choice. The rules of a Boss are ova_cg_po's PLAN.md,
+  "Boss NPCs".
+
 ## Build order
 
 Each phase ends with its tests passing (`make test`; `make

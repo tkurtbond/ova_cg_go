@@ -40,6 +40,7 @@ const (
 	CompanionSheet                  // 20 and 20 (p. 52); TV 4 less, at least 1, a Secondary NPC's (p. 123-124)
 	MinionSheet                     // 10 and 10 (p. 58)
 	ExtraSheet                      // 10 and 10 (p. 123); TV always 1, an Extra's (p. 124)
+	BossSheet                       // 40 and 40, a character's (p. 123); it alone may have Boss Abilities
 )
 
 // Code is a warning's kind. Each names what it is about in its trait,
@@ -59,6 +60,7 @@ const (
 	StartingBroken                  // Abilities beyond the starting levels and the Weaknesses' (p. 21)
 	CeilingBroken                   // Abilities beyond the Power Ceiling (p. 21)
 	OverFive                        // attack, or none for Defense: Abilities give a roll more than +5 (p. 21)
+	NotBoss                         // trait: a Boss Ability on a sheet that isn't a Boss's (p. 123)
 )
 
 const (
@@ -67,6 +69,7 @@ const (
 	companionBase = 20
 	minionBase    = 10
 	companionTV   = 4 // taken off a Secondary NPC's TV
+	bossTV        = 5 // added for each Boss Ability (p. 124)
 	maxLevel      = 5
 	minWeakness   = -3
 	costStep      = 5
@@ -561,6 +564,9 @@ func (s *Sheet) computeTrait(t *Trait) {
 		t.Kind == rules.Weakness && (t.Level > -1 || t.Level < minWeakness) {
 		s.warn(LevelRange, t, nil, nil, nil)
 	}
+	if t.has(rules.BossOnly) && s.Kind != BossSheet {
+		s.warn(NotBoss, t, nil, nil, nil)
+	}
 	t.HasEnd = len(t.Mods) > 0 || t.Use != 0
 	if t.HasEnd {
 		t.End.set(endCost(t.Mods, t.Use))
@@ -646,8 +652,8 @@ func halfTVLevel(t *Trait) int {
 // computeTV: TV (p. 124), the best ROLL, Defense and DX, without the
 // Perks and Flaws that add to them each time (Attack.TVRoll, TVDX), +
 // Armored + the signed levels that change Health and Endurance + half of
-// each marked Ability's; a Companion's 4 less, at least 1. With no
-// attack, the plain one: 2 + Agile + Combat Expert - Clumsy, 1 + Attack
+// each marked Ability's + 5 for each Boss Ability; a Companion's 4 less,
+// at least 1. With no attack, the plain one: 2 + Agile + Combat Expert - Clumsy, 1 + Attack
 // + Strong - Weak.
 func (s *Sheet) computeTV() {
 	form := s.Transformed
@@ -683,6 +689,9 @@ func (s *Sheet) computeTV() {
 		s.sum(rules.EnduranceTable, form) + s.sum(rules.EnduranceTens, form)
 	for _, t := range s.Traits {
 		tv += halfTVLevel(t)
+		if t.has(rules.BossOnly) {
+			tv += bossTV
+		}
 		if form {
 			for _, f := range t.Form {
 				tv += halfTVLevel(f)
@@ -739,7 +748,11 @@ func (s *Sheet) computeTotals() {
 	abilities, abilityPoints, weaknesses := 0, 0, 0
 	s.WeaknessPoints = 0
 	for _, t := range s.Traits {
-		lv, pts := t.Level, scaled(abs(t.Level))
+		lv := t.Level
+		if t.has(rules.BossOnly) { // applied and removed as needed (p. 123)
+			lv = 0
+		}
+		pts := scaled(abs(lv))
 		if half && t.has(rules.HalfCost) {
 			lv, pts = halfUp(lv), halfUp(pts)
 		}

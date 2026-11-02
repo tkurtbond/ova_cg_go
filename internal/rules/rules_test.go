@@ -384,3 +384,34 @@ func TestFlags(t *testing.T) {
 		linked("Vehicle (Mecha)") == Machine && linked("Attack") == NoLink, "linked content")
 	check(Index(Find("Agile")) == 0 && Index(Find("Weapon")) == Count(Flaw)-1 && Index(nil) == -1, "Index")
 }
+
+// The Boss Abilities (p. 123): Abilities, found by name, but offered only
+// to a list that asks for them, after every other.
+func TestBoss(t *testing.T) {
+	n := Count(Ability)
+	want := []string{"Health Reserve", "Extra Actions", "Scale Advantage", "Escape Plan"}
+	if BossCount() != len(want) {
+		t.Fatalf("BossCount %d", BossCount())
+	}
+	for i, name := range want {
+		it := GetBoss(i)
+		if it.Name != name || it.Kind != Ability || it.Page != 123 || !it.Has(BossOnly) {
+			t.Errorf("Boss Ability %d: %+v", i, it)
+		}
+		if Find(name) != it || Index(it) != -1 {
+			t.Errorf("%s: found by name, in no kind's order", name)
+		}
+		if OfferIndex(it, Ability, false) != -1 || OfferIndex(it, Ability, true) != n+i || Offered(Ability, n+i, true) != it {
+			t.Errorf("%s: offered last, and only to a Boss's list", name)
+		}
+	}
+	for i := range n {
+		it := Get(Ability, i)
+		if it.Has(BossOnly) || OfferIndex(it, Ability, true) != i {
+			t.Errorf("%s: an Ability's place the same", it.Name)
+		}
+	}
+	if OfferCount(Ability, false) != n || OfferCount(Ability, true) != n+4 || OfferCount(Weakness, true) != Count(Weakness) {
+		t.Error("only Abilities offer them")
+	}
+}

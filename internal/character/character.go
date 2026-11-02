@@ -70,7 +70,7 @@ type Character struct {
 	Background, Appearance        string
 	Personality, OtherNotes       string
 	CharacterHooks                string
-	// npc-type: entities.Heroic, Secondary or Extra; it sets the sheet's
+	// npc-type: entities.Heroic, Secondary, Extra or Boss; it sets the sheet's
 	// kind (SetNpcType).
 	HasNpcType     bool
 	NpcType        entities.NpcType
@@ -233,14 +233,16 @@ func newCharacter(k calc.SheetKind) *Character {
 func New() *Character { return newCharacter(calc.Character) }
 
 // kindOf is the sheet kind of an NPC type (p. 123-124): a Heroic NPC's
-// is a character's, a Secondary's a Companion's, an Extra's its own; no
-// type is a character's.
+// is a character's, a Secondary's a Companion's, an Extra's and a Boss's
+// their own; no type is a character's.
 func kindOf(has bool, k entities.NpcType) calc.SheetKind {
 	switch {
 	case !has || k == entities.Heroic:
 		return calc.Character
 	case k == entities.Secondary:
 		return calc.CompanionSheet
+	case k == entities.Boss:
+		return calc.BossSheet
 	}
 	return calc.ExtraSheet
 }
@@ -248,7 +250,7 @@ func kindOf(has bool, k entities.NpcType) calc.SheetKind {
 // SetNpcType sets c's NPC type (has false: none), and so its sheet's
 // kind: Recompute after.
 func SetNpcType(c *Character, has bool, k entities.NpcType) {
-	if has && (k < entities.Heroic || k > entities.Extra) {
+	if has && (k < entities.Heroic || k > entities.Boss) {
 		panic("character.SetNpcType: no such NPC type")
 	}
 	c.HasNpcType = has

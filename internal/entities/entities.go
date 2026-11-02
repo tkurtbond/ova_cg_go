@@ -93,10 +93,11 @@ const (
 	Heroic NpcType = iota
 	Secondary
 	Extra
+	Boss
 	NNpcTypes
 )
 
-var npcTypeNames = [NNpcTypes]string{"Heroic", "Secondary", "Extra"}
+var npcTypeNames = [NNpcTypes]string{"Heroic", "Secondary", "Extra", "Boss"}
 
 // NpcTypeName is the rulebook's capitalization of npc-type k ("Heroic").
 func NpcTypeName(k NpcType) string { return npcTypeNames[k] }
@@ -249,7 +250,7 @@ type Entity struct {
 	Personality, OtherNotes       string
 	CharacterHooks                string
 	HasNpcType                    bool
-	NpcType                       NpcType     // Heroic, Secondary or Extra
+	NpcType                       NpcType     // Heroic, Secondary, Extra or Boss
 	Count                         int         // how many it stands for, 1 or more; 1 with no count:
 	Abilities                     []*Ability  // sorted
 	Weaknesses                    []*Weakness // sorted
@@ -658,7 +659,7 @@ func (l *Loader) loadNpcType(m node) (bool, NpcType, error) {
 			return true, k, nil
 		}
 	}
-	l.record(m, "npc-type", `"`+raw+`" is not one of Heroic, Secondary, Extra`)
+	l.record(m, "npc-type", `"`+raw+`" is not one of Heroic, Secondary, Extra, Boss`)
 	return false, Heroic, nil
 }
 

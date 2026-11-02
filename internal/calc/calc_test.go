@@ -618,3 +618,27 @@ func TestLimits(t *testing.T) {
 	c.int(&s.AbilityLevels, 8, "an unknown Ability counts in the totals")
 	c.is(len(s.Warnings), 4, "Agile 6, Weak 0, Poor -4")
 }
+
+// A Boss (p. 123-124): a character's Health and Endurance; 5 TV for each
+// Boss Ability, whose level no total counts.
+func TestBoss(t *testing.T) {
+	c := &checker{t, "boss"}
+	s := NewSheet(BossSheet, nil)
+	tr(&s.Traits, "Attack", 2)
+	Compute(s)
+	tv := s.TV.Get()
+	c.int(&s.Health, 40, "HEALTH")
+	c.int(&s.Endurance, 40, "ENDURANCE")
+	tr(&s.Traits, "Health Reserve", 1)
+	tr(&s.Traits, "Scale Advantage", 1)
+	Compute(s)
+	c.is(s.TV.Get(), tv+10, "TV: 5 for each")
+	c.int(&s.AbilityLevels, 2, "a Boss Ability's level in no total")
+	c.int(&s.AbilityPoints, 2, "nor its points")
+	c.int(&s.Health, 40, "HEALTH isn't doubled")
+	c.is(len(s.Warnings), 0, "no warnings")
+	s = NewSheet(Character, nil)
+	tr(&s.Traits, "Escape Plan", 1)
+	Compute(s)
+	c.ok(s.Warned(NotBoss), "a Boss Ability off a Boss's sheet")
+}

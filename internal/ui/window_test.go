@@ -381,6 +381,7 @@ func TestWindow(t *testing.T) {
 	w.NpcTypeIn.SetSelectedIndex(0)
 	check(t, !c.HasNpcType && c.Kind == calc.Character && allShown(w) && !strings.Contains(saved(w), "npc-type"),
 		"none chosen: a character's sheet, no npc-type saved")
+	testBossAbilities(t, w)
 
 	// ---- Files ----
 	f.chosen = objDir + "window.yaml"
@@ -581,4 +582,54 @@ func testSeveral(t *testing.T, w *Window, f *fakes) {
 	f.answer = Discard
 	w.NewItem.Action()
 	check(t, len(w.Characters) == 1 && listed(w, "1. (no name)"), "New: one new character")
+}
+
+// optionsHave says whether p's Select lists labels from row first on.
+func optionsHave(p *TraitPanel, first int, labels ...string) bool {
+	for i, l := range labels {
+		if first+i >= len(p.Choice.Options) || p.Choice.Options[first+i] != l {
+			return false
+		}
+	}
+	return true
+}
+
+// The Boss Abilities in the Abilities' Select: there for a Boss alone,
+// after the divider row. Leaves the type none and no Boss Ability.
+func testBossAbilities(t *testing.T, w *Window) {
+	p, c := w.Abilities, w.Character
+	n := rules.Count(rules.Ability)
+	lines, health := p.Count(), c.Health.Get()
+	check(t, !p.WithBoss && len(p.Choice.Options) == n, "no type: the Abilities alone")
+	check(t, w.NpcTypeIn.Options[1+int(entities.Boss)] == "Boss (p. 123)", "Boss among the types, with its page")
+	w.NpcTypeIn.SetSelectedIndex(1 + int(entities.Boss))
+	check(t, c.Kind == calc.BossSheet && c.Health.Get() == health && allShown(w) && strings.Contains(saved(w), "npc-type: Boss"),
+		"Boss chosen: its own sheet, shown, and saved")
+	check(t, p.WithBoss && len(p.Choice.Options) == n+5 && optionsHave(p, n, BossDivider, "Health Reserve (p. 123)",
+		"Extra Actions (p. 123)", "Scale Advantage (p. 123)", "Escape Plan (p. 123)"),
+		"a Boss: the divider, then the Boss Abilities, each with its page")
+	check(t, optionsHave(p, 0, rules.Label(rules.Get(rules.Ability, 0))) && len(w.Weaknesses.Choice.Options) == rules.Count(rules.Weakness),
+		"the Abilities first, and the Weaknesses offer nothing new")
+	p.Pick("Attack")
+	p.Choice.SetSelectedIndex(n)
+	check(t, p.Item() == nil && p.Choice.SelectedIndex() < 0 && p.Choice.Selected == "", "the divider can't stay chosen")
+	tv, total := c.TV.Get(), c.AbilityLevels.Get()
+	p.Choice.SetSelectedIndex(n + 3)
+	check(t, p.Item() == rules.Find("Scale Advantage") && p.Help.Page == 123 && p.Spinner.Disabled() && p.Spinner.Value() == 1,
+		"a Boss Ability chosen: its page, the level 1 and off")
+	p.Text.SetText("Attack")
+	test.Tap(p.Add)
+	check(t, p.Count() == lines+1 && c.TV.Get() == tv+5 && c.AbilityLevels.Get() == total &&
+		strings.Contains(saved(w), "Scale Advantage") && p.ListShown() && allShown(w), "added: 5 TV, no levels, saved, shown")
+	p.Pick("Attack")
+	check(t, !p.Spinner.Disabled(), "another name: the level on again")
+	p.Select(p.Find("Scale Advantage"))
+	w.NpcTypeIn.SetSelectedIndex(0)
+	check(t, !p.WithBoss && len(p.Choice.Options) == n && c.Warned(calc.NotBoss) && strings.Contains(saved(w), "Scale Advantage") &&
+		w.Warnings.Find("only a Boss") >= 0, "no longer a Boss: not offered, kept, and warned of")
+	p.Select(p.Find("Scale Advantage"))
+	check(t, p.Item() == nil && p.Choice.Selected == "" && !p.Spinner.Disabled(), "its line selected: nothing chosen, and nothing fails")
+	test.Tap(p.Remove)
+	check(t, p.Count() == lines && !c.Warned(calc.NotBoss) && !strings.Contains(saved(w), "Scale Advantage") &&
+		w.Warnings.Find("only a Boss") < 0, "removed: the warning gone")
 }

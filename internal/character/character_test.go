@@ -336,3 +336,20 @@ func TestModel(t *testing.T) {
 		t.Error("CopyMods: each mod copied")
 	}
 }
+
+// A file's Bosses: a Boss's sheet, and the file's numbers the rules'.
+func TestLoadBoss(t *testing.T) {
+	cs, notices, err := LoadAll(dataDir + "Boss.yaml")
+	if err != nil || len(cs) != 2 {
+		t.Fatalf("Boss.yaml: %v, %d characters", err, len(cs))
+	}
+	for _, c := range cs {
+		if !c.HasNpcType || c.NpcType != entities.Boss || c.Kind != calc.BossSheet {
+			t.Errorf("%s: a Boss's sheet", c.Name)
+		}
+	}
+	checkInt(t, "The Warden: HEALTH", &cs[0].Health, 40)
+	if len(notices) != 0 {
+		t.Errorf("Boss.yaml: no notices: %q", notices)
+	}
+}

@@ -216,12 +216,12 @@ func (d *LinkedDialog) spellItem() *rules.Item {
 	return rules.Get(d.CastKind, i)
 }
 
-// chooseSpellItem chooses it in the Select; none for nil, or an item of
-// the other kind (a spell the Magic can't cast, from a file).
+// chooseSpellItem chooses it in the Select; none for nil, or an item it
+// doesn't offer (a spell the Magic can't cast, from a file).
 func (d *LinkedDialog) chooseSpellItem(it *rules.Item) {
 	d.filling = true
-	if it != nil && it.Kind == d.CastKind {
-		d.SpellAbility.SetSelectedIndex(rules.Index(it))
+	if i := rules.OfferIndex(it, d.CastKind, false); i >= 0 {
+		d.SpellAbility.SetSelectedIndex(i)
 	} else {
 		d.SpellAbility.ClearSelected()
 	}
