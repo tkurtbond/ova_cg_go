@@ -333,6 +333,12 @@ anything. While the window fills its widgets from the character
 - **No valgrind targets.** Go is memory-safe and collected; the
   equivalent checks are `go vet` and `go test -race` (`make check`).
 
+- **`count:`**, as in ova_cg_po (its PLAN.md, "Files", 2026-11-02):
+  kept and saved when over 1, so the inline paragraph shows it, with no
+  field in the window. `TestCount` and `Group.yaml`'s round trip (27
+  notices) check it, and that a count of 0 is an error, since this repo
+  has no golden files for errors.
+
 ## Build order
 
 Each phase ends with its tests passing (`make test`; `make

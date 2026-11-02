@@ -16,7 +16,9 @@ package markdown
 // names it already, so it leads instead of the bold name. An Ability's
 // linked content follows as a paragraph of its own. Each paragraph is
 // filled to 70 columns, counting characters, not bytes, and never breaks
-// a line before a word that would start a Markdown block there.
+// a line before a word that would start a Markdown block there. A
+// count: over 1 makes the lead "**Name** (three Secondaries)." and the
+// end "TV 6 each.": one stat block standing for a group.
 // test/files.sh checks it is ova_fmt_po -i's of the saved file, byte for
 // byte.
 
@@ -45,13 +47,25 @@ func Inline(c *character.Character) string {
 func InlineEntity(e *entities.Entity) string {
 	var b strings.Builder
 	var p string
+	group := e.Count > 1
 	if e.IsFragment && e.HasBackground {
 		p = addProse(p, e.Background)
-		if e.HasNpcType {
+		switch {
+		case e.HasNpcType && group:
+			p = add(p, npcTypeText(e)+" NPCs ("+countText(e.Count)+").")
+		case e.HasNpcType:
 			p = add(p, npcTypeText(e)+" NPC.")
+		case group:
+			p = add(p, "("+countText(e.Count)+").")
 		}
 	} else {
-		if e.HasNpcType {
+		if group {
+			r := countText(e.Count)
+			if e.HasNpcType {
+				r += " " + npcTypePlural(e)
+			}
+			p = bold(e.Name) + " (" + r + ")."
+		} else if e.HasNpcType {
 			p = bold(e.Name) + " (" + npcTypeText(e) + ")."
 		} else {
 			p = bold(e.Name + ".")
@@ -72,7 +86,7 @@ func InlineEntity(e *entities.Entity) string {
 	if t := traits(joinFragmentAbilities(e.Abilities), join(e.Weaknesses, fragmentWeaknessLine)); t != "" {
 		p = add(p, t)
 	}
-	p = addCombat(p, &e.Combat)
+	p = addCombat(p, &e.Combat, group)
 	paragraph(&b, p)
 	for _, a := range e.Abilities {
 		linked(&b, a)
@@ -189,9 +203,31 @@ func inlineAttack(a *entities.Attack) string {
 	return r
 }
 
+// countWords are the counts prose spells out.
+var countWords = [...]string{"", "one", "two", "three", "four", "five", "six",
+	"seven", "eight", "nine", "ten", "eleven", "twelve"}
+
+// countText is n as a word, up to twelve; past that its digits: the Ada
+// Count_Text.
+func countText(n int) string {
+	if n < len(countWords) {
+		return countWords[n]
+	}
+	return trimImg(n)
+}
+
+// npcTypePlural is e's NPC type's plural, as a count of them has it:
+// "Secondaries".
+func npcTypePlural(e *entities.Entity) string {
+	if e.NpcType == entities.Secondary {
+		return "Secondaries"
+	}
+	return npcTypeText(e) + "s"
+}
+
 // addCombat is p, then c's attacks, "Defense D. Health H, Endurance E.
 // TV T." and its notes; p if there is no combat.
-func addCombat(p string, c *entities.Combat) string {
+func addCombat(p string, c *entities.Combat, group bool) string {
 	if !c.HasCombat {
 		return p
 	}
@@ -202,7 +238,11 @@ func addCombat(p string, c *entities.Combat) string {
 		". Health " + marked(trimImg(c.Health), entities.OvHealth, c.Overrides) +
 		", Endurance " + marked(trimImg(c.Endurance), entities.OvEndurance, c.Overrides) + "."
 	if c.HasThreatValue {
-		s += " TV " + marked(trimImg(c.ThreatValue), entities.OvThreatValue, c.Overrides) + "."
+		s += " TV " + marked(trimImg(c.ThreatValue), entities.OvThreatValue, c.Overrides)
+		if group {
+			s += " each"
+		}
+		s += "."
 	}
 	p = add(p, s)
 	if c.HasNotes {
@@ -235,7 +275,7 @@ func linked(b *strings.Builder, a *entities.Ability) {
 		if t := traits(join(se.Abilities, fragmentSubItemLine), join(se.Weaknesses, fragmentSubItemLine)); t != "" {
 			p = add(p, t)
 		}
-		p = addCombat(p, &se.Combat)
+		p = addCombat(p, &se.Combat, false)
 	}
 	paragraph(b, p)
 }

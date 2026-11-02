@@ -74,6 +74,7 @@ type Character struct {
 	// kind (SetNpcType).
 	HasNpcType     bool
 	NpcType        entities.NpcType
+	Count          int // count:, how many it stands for; kept for the save
 	Notes          []*Note
 	HasFluff       bool
 	HasFluffField  [NFluff]bool
@@ -223,7 +224,7 @@ func Recompute(c *Character) {
 // ---- Building from what entities read ----
 
 func newCharacter(k calc.SheetKind) *Character {
-	c := &Character{HasCombat: true, HasThreatValue: true}
+	c := &Character{HasCombat: true, HasThreatValue: true, Count: 1}
 	c.Sheet = calc.Sheet{Kind: k, Owner: c}
 	return c
 }
@@ -338,6 +339,7 @@ func Build(e *entities.Entity) *Character {
 	c.HasPersonality, c.Personality = e.HasPersonality, e.Personality
 	c.HasCharacterHooks, c.CharacterHooks = e.HasCharacterHooks, e.CharacterHooks
 	SetNpcType(c, e.HasNpcType, e.NpcType)
+	c.Count = e.Count
 	c.HasOtherNotes, c.OtherNotes = e.HasOtherNotes, e.OtherNotes
 	c.IsFragment = e.IsFragment
 	for _, a := range e.Abilities {

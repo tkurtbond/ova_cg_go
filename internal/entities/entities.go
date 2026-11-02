@@ -250,6 +250,7 @@ type Entity struct {
 	CharacterHooks                string
 	HasNpcType                    bool
 	NpcType                       NpcType     // Heroic, Secondary or Extra
+	Count                         int         // how many it stands for, 1 or more; 1 with no count:
 	Abilities                     []*Ability  // sorted
 	Weaknesses                    []*Weakness // sorted
 	Combat                        Combat
@@ -661,6 +662,24 @@ func (l *Loader) loadNpcType(m node) (bool, NpcType, error) {
 	return false, Heroic, nil
 }
 
+// loadCount reads m's count:, 1 if there is none: the Ada Load_Count.
+// Less than 1 is a recorded error, as a bad npc-type: is. Something that
+// isn't an integer fails the Load, as any optional integer's does.
+func (l *Loader) loadCount(m node) (int, error) {
+	has, count, err := optInteger(m, "count")
+	if err != nil {
+		return 1, err
+	}
+	if !has {
+		return 1, nil
+	}
+	if count < 1 {
+		l.record(m, "count", fmt.Sprintf(`"%d" is not 1 or more`, count))
+		return 1, nil
+	}
+	return count, nil
+}
+
 // ---- Perks and Flaws ----
 
 // loadPerkFlaw reads a Perk or Flaw: a scalar (just the name) or a
@@ -976,6 +995,9 @@ func (l *Loader) loadEntity(m node, e *Entity) error {
 		}
 	}
 	if e.HasNpcType, e.NpcType, err = l.loadNpcType(m); err != nil {
+		return err
+	}
+	if e.Count, err = l.loadCount(m); err != nil {
 		return err
 	}
 	if err = prose(m, "other-notes", &e.HasOtherNotes, &e.OtherNotes); err != nil {

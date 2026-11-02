@@ -27,7 +27,7 @@ var fixtures = []string{
 	"Beat-Cop", "Cat-Burglar", "Dragon", "Ebullient-Club-President", "Ghosts", "Goblin", "GPL-Agents",
 	"Indebted-Yakuza", "Magical-Fairies", "Ninja", "Oni", "Sentry-Bots", "Shady-Teacher", "Shinto-Priest",
 	"Snobbish-Upperclassman", "Spider-Tank", "Thugs", "Venomous-Killer", "Weathered-Salaryman",
-	"Weird-Exchange-Student", "Wild-Beast", "Zombies", "Fragment", "Options", "two-documents",
+	"Weird-Exchange-Student", "Wild-Beast", "Zombies", "Fragment", "Group", "Options", "two-documents",
 	"defense-best", "defense-best-differs", "defense-two",
 }
 

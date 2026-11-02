@@ -12,6 +12,7 @@ package save
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -92,7 +93,7 @@ func TestFixtures(t *testing.T) {
 		{"Shinto-Priest", 0}, {"Snobbish-Upperclassman", 0}, {"Spider-Tank", 0}, {"Thugs", 0},
 		{"Venomous-Killer", 0}, {"Weathered-Salaryman", 0}, {"Weird-Exchange-Student", 0},
 		{"Wild-Beast", 0}, {"Zombies", 0},
-		{"Fragment", 0}, {"Options", 0}, {"two-documents", 0},
+		{"Fragment", 0}, {"Group", 27}, {"Options", 0}, {"two-documents", 0},
 	} {
 		t.Run(x.name, func(t *testing.T) { roundTrip(t, x.name, x.want) })
 	}
@@ -188,6 +189,30 @@ func savesAs(t *testing.T, name, want string) {
 	}
 	if text := ToText(c); !holdsLine(text, want) {
 		t.Errorf("%s: saved with %s:\n%s", name, want, text)
+	}
+}
+
+// TestCount: count: is kept for the save and the inline paragraphs,
+// though the window doesn't show it; a count of 1 is the same as none;
+// under 1 is a recorded error.
+func TestCount(t *testing.T) {
+	c, _, err := character.LoadAll(dataDir + "Group.yaml")
+	if err != nil || len(c) != 8 {
+		t.Fatalf("Group: count: its eight load: %d, %v", len(c), err)
+	}
+	text := AllToText(c)
+	if c[0].Count != 3 || !strings.Contains(text, "  count: 3\n") {
+		t.Errorf("Group: Guards keep a count of 3, and save it")
+	}
+	if c[4].Count != 1 || strings.Contains(text, "  count: 1\n") {
+		t.Errorf("Group: a count of 1 isn't saved")
+	}
+	bad := filepath.Join(t.TempDir(), "bad-count.yaml")
+	if err := os.WriteFile(bad, []byte("- name: None\n  count: 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := character.LoadAll(bad); err == nil || !strings.Contains(err.Error(), "is not 1 or more") {
+		t.Errorf("a count of 0 is an error: %v", err)
 	}
 }
 

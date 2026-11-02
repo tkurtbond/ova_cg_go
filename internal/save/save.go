@@ -306,6 +306,9 @@ func entity(c *character.Character) *yaml.Node {
 	if c.HasNpcType {
 		pair(m, "npc-type", text(entities.NpcTypeName(c.NpcType)))
 	}
+	if c.Count > 1 {
+		pair(m, "count", integer(c.Count))
+	}
 	textPair(m, "player", c.HasPlayer, c.Player)
 	textPair(m, "portrait", c.HasPortrait, c.Portrait)
 	textPair(m, "tagline", c.HasTagline, c.Tagline)
